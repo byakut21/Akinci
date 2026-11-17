@@ -7,11 +7,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import knightGlb from './assets/knight.glb';
 import barbarianGlb from './assets/barbarian.glb';
 import rogueGlb from './assets/rogue.glb';
-import skMinionGlb from './assets/sk_minion.glb';
-import skWarriorGlb from './assets/sk_warrior.glb';
-import skRogueGlb from './assets/sk_rogue.glb';
-import skMageGlb from './assets/sk_mage.glb';
-import skWeaponsGlb from './assets/sk_weapons.glb';
+import villagerGlb from './assets/villager.glb';
+import advWeaponsGlb from './assets/adv_weapons.glb';
 import worldGlb from './assets/world.glb';
 import dungeonGlb from './assets/dungeon.glb';
 
@@ -137,21 +134,17 @@ export function cloneModel(lib, key, width) {
 }
 
 export async function loadAll(onProgress) {
-  const files = { knight: knightGlb, knight2: knightGlb, barbarian: barbarianGlb, rogue: rogueGlb, sk_minion: skMinionGlb, sk_warrior: skWarriorGlb, sk_rogue: skRogueGlb, sk_mage: skMageGlb, weapons: skWeaponsGlb, world: worldGlb, dungeon: dungeonGlb };
+  const files = { knight: knightGlb, heroT: knightGlb, heroK: knightGlb, barbarian: barbarianGlb, rogue: rogueGlb, villager: villagerGlb, weapons: advWeaponsGlb, world: worldGlb, dungeon: dungeonGlb };
   const G = {}; let i = 0; const n = Object.keys(files).length;
-  for (const [k, u8] of Object.entries(files)) { G[k] = await parse(u8); onProgress && onProgress(++i / n); }
+  for (const [k, u8] of Object.entries(files)) { G[k] = await parse(u8); onProgress && onProgress(++i / n); await new Promise(r => setTimeout(r, 0)); }
   for (const lib of ['world', 'dungeon', 'weapons']) for (const c of G[lib].scene.children) A[lib][c.name] = c;
-  // animation clips (shared rig)
   A.clips.all = {};
   for (const c of G.knight.animations) A.clips.all[c.name] = c;
-  for (const c of G.sk_minion.animations) A.clips.all[c.name] = c;
   const W = A.weapons;
   A.tmpl.knight = prepChar(G.knight.scene);
-  A.tmpl.hero = prepChar(G.knight2.scene, [], ['1H_Sword', 'Round_Shield', 'Knight_Helmet']);
+  A.tmpl.heroT = prepChar(G.heroT.scene, [], ['1H_Sword', 'Round_Shield', 'Knight_Helmet']);
+  A.tmpl.heroK = prepChar(G.heroK.scene, [], ['1H_Sword', 'Round_Shield']);
   A.tmpl.barbarian = prepChar(G.barbarian.scene);
   A.tmpl.rogue = prepChar(G.rogue.scene);
-  A.tmpl.sk_minion = prepChar(G.sk_minion.scene, [{ obj: W.blade, bone: 'handslotr', sameMat: true }]);
-  A.tmpl.sk_warrior = prepChar(G.sk_warrior.scene, [{ obj: W.axe, bone: 'handslotr', sameMat: true }, { obj: W.shield, bone: 'handslotl', sameMat: true }]);
-  A.tmpl.sk_rogue = prepChar(G.sk_rogue.scene, [{ obj: W.crossbow, bone: 'handslotr', sameMat: true }]);
-  A.tmpl.sk_mage = prepChar(G.sk_mage.scene, [{ obj: W.staff, bone: 'handslotr', sameMat: true }]);
+  A.tmpl.villager = prepChar(G.villager.scene, [{ obj: W.axe, bone: 'handslotr' }]);
 }

@@ -1,27 +1,36 @@
-# Akıncı: Sınır Boyu
+# Akıncı: Beş Krallık
 
-Mobil, dikey ekran 3D strateji/aksiyon oyunu. Atlı okçu Paşa'yı yönet, altın madeninden ve düşen canavarlardan altın topla, ordu kur; durmadan saldıran iskelet ordusuna karşı kaleni savun ve canavar inini yık.
+Ortaçağda geçen, mobil dikey ekran 3D strateji oyunu. Beş medeniyetten birini seç; barış döneminde köylülerinle tarla, taş ve altın işle, evler kur, kışla/okçu meydanı/ahır aç, ordu yetiştir. Barış bitince krallıklar birbirini istila eder; iyi gelişen saldırır. Son kalan kazanır.
 
 ## İndir
-- **Android APK:** [`releases/Akinci-v1.2.apk`](releases/Akinci-v1.2.apk) (Android 7.0+). Önceki sürümün üzerine kurulur.
-- Tarayıcıda: `dist/index.html` (tek dosya, internet gerekmez).
+- **Android APK:** [`releases/Akinci-v2.0.apk`](releases/Akinci-v2.0.apk) (Android 7.0+; eski sürümlerin üzerine kurulur)
+- Tarayıcıda: `dist/index.html`
+- Önceki "canavar ini" sürümü: `yedek-v1.2` dalı ve `releases/Akinci-v1.2.apk`
+
+## Medeniyetler
+| Medeniyet | Özel birlik | Bonus |
+|---|---|---|
+| Osmanlı Devleti | Sipahi (atlı okçu) | Atlı birlikler %20 ucuz |
+| Roma İmparatorluğu | Lejyoner (piyade) | Binalar %20 daha az taş |
+| Germen Boyları | Berserker (baltacı) | Piyadeler %20 ucuz |
+| İngiliz Krallığı | Uzun Yaycı (okçu) | Kuleler %40 güçlü |
+| Arap Emirliği | Bedevi (süvari) | Yiyecek toplama %25 hızlı |
 
 ## Oynanış
-- Ekranı sürükle → **atlı okçu Paşa** hareket eder, menzildeki canavarlara kendiliğinden ok atar (bilgisayarda WASD / ok tuşları).
-- **Altın madeni** sürekli altın üretir; madenin önünde biriken altını Paşa ile topla. İkinci maden 20 altın.
-- **Canavar ini** sürekli iskelet gönderir; 40 saniyede bir büyük **sürü** gelir (sonraki seferlerde dev iskelet).
-- Alanların üzerinde dur, altın akar:
-  - **Piyade / Okçu / Baltacı** – asker al
-  - **Kule** – savunma kulesi · **Kışla** – otomatik piyade · **Maden** – ek altın · **Talim** – ordu +%15
-  - **HÜCUM!** – toplanma alanındaki askerleri saldırıya gönder
-- Canavar ini yıkılınca zafer, kale düşerse yenilgi.
-- Müzik: davul, nakkare, zurna ve yaylılarla Hicaz makamında mehter tarzı marş (tamamen kodla üretilir). Müzik ve efekt sesleri ayrı ayrı kapatılabilir.
+- Ekranı sürükle → **atlı Paşa** hareket eder, menzildeki düşmanlara ok atar; düşman askerlerinden düşen altınları toplar.
+- Alanların üzerinde dur, kaynak akar:
+  - **ÇİFTÇİ / ALTINCI / TAŞÇI** – o işte çalışacak köylü (50 yiyecek)
+  - **EV** – nüfus +6 · **TARLA** – 3 çiftçi daha
+  - **KIŞLA** (piyade, baltacı) · **OKÇU MEYDANI** (okçu) · **AHIR** (süvari, atlı okçu) · **KULE** · **TALİM** (ordu +%12)
+  - **SANCAĞA** – ordu Paşa'yı takip eder (istila için) · **HÜCUM!** – en yakın krallığa saldırı · **SAVUN** – kaleye dön
+- Kalesi yıkılan krallık düşer, fetheden ganimet alır. Kalen düşerse kaybedersin.
+- Müzik: özgün, karanlık ortaçağ epiği (çello ostinatosu, savaş davulları, boru, koro) – kodla üretilir; savaşta davullar yoğunlaşır.
 
 ## Proje yapısı
 ```
-src/main.js, src/game.js   Oyun (Three.js r170)
+src/main.js, src/game.js   Oyun: 5 krallık, yapay zekâ, ekonomi (Three.js r170)
 src/assets.js              Model yükleme / birleştirme
-src/audio.js               Müzik ve ses efektleri (WebAudio)
+src/audio.js               Müzik ve ses efektleri (WebAudio, renderMusic ile çevrimdışı önizleme)
 src/assets/*.glb           3D modeller (KayKit, CC0 – bkz. src/assets/LICENSE-KayKit.txt)
 tools/build_assets.mjs     KayKit paketlerinden küçültülmüş .glb üretir
 tools/build_web.mjs        Her şeyi tek dist/index.html dosyasına paketler
@@ -39,6 +48,7 @@ Modelleri yeniden üretmek için KayKit depolarını (Adventurers, Skeletons, Me
 **İmza anahtarı** (`tools/release-key.pem`) depoya eklenmez; güncellemelerin üzerine kurulabilmesi için hep aynı anahtar kullanılmalı.
 
 ## Sürümler
+- **2.0** – Beş medeniyet, köylü ekonomisi (yiyecek/taş/altın), ev/nüfus, kışla-okçu-ahır, süvari ve atlı okçu, 5 krallıklık büyük harita, barış dönemi ve yapay zekâ istilası, epik ortaçağ müziği.
 - **1.2** – KayKit 3D modelleri (şövalye, okçu, baltacı, iskelet canavarlar, kale, kule, kışla, maden), atlı okçu Paşa, altın madeni, sürekli saldıran canavar ini, mehter müziği, yeni ses efektleri, daha yakın kamera.
 - **1.1** – İlk 3D sürüm, kısa harita, düşman dalgaları.
 - **1.0** – 2D prototip.
