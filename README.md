@@ -1,43 +1,48 @@
 # Akıncı: Sınır Boyu
 
-Osmanlı akıncı temalı, mobil dikey ekran 3D strateji/aksiyon oyunu. Paşa'yı yönet, akçe topla, ordu kur, düşman hücumlarını savun ve karşı saldırıyla düşman kalesini yık.
+Mobil, dikey ekran 3D strateji/aksiyon oyunu. Atlı okçu Paşa'yı yönet, altın madeninden ve düşen canavarlardan altın topla, ordu kur; durmadan saldıran iskelet ordusuna karşı kaleni savun ve canavar inini yık.
 
 ## İndir
-- **Android APK:** [`releases/Akinci-v1.1.apk`](releases/Akinci-v1.1.apk) (Android 7.0+)
-- Tarayıcıda oynamak için `dist/index.html` dosyasını aç (tek dosya, internet gerekmez).
+- **Android APK:** [`releases/Akinci-v1.2.apk`](releases/Akinci-v1.2.apk) (Android 7.0+). Önceki sürümün üzerine kurulur.
+- Tarayıcıda: `dist/index.html` (tek dosya, internet gerekmez).
 
 ## Oynanış
-- Ekranı sürükle → Paşa'yı yönet (bilgisayarda WASD / ok tuşları).
-- Düşman kalesi sürekli asker üretir ve belirli aralıklarla **otağına hücum eder**. Sayaç ekranın üstünde.
-- Düşen düşmanlar **akçe** bırakır, Paşa yaklaşınca toplanır. Otağdaki hazine de yavaşça akçe verir.
-- Alanların üzerinde dur, akçe akar:
-  - **Yeniçeri / Okçu / Şahi Topu** – asker al
-  - **Kule** – otağın önüne savunma kulesi
-  - **Kışla** – 8 sn'de bir otomatik yeniçeri
-  - **Talim** – tüm ordu +%15
+- Ekranı sürükle → **atlı okçu Paşa** hareket eder, menzildeki canavarlara kendiliğinden ok atar (bilgisayarda WASD / ok tuşları).
+- **Altın madeni** sürekli altın üretir; madenin önünde biriken altını Paşa ile topla. İkinci maden 20 altın.
+- **Canavar ini** sürekli iskelet gönderir; 40 saniyede bir büyük **sürü** gelir (sonraki seferlerde dev iskelet).
+- Alanların üzerinde dur, altın akar:
+  - **Piyade / Okçu / Baltacı** – asker al
+  - **Kule** – savunma kulesi · **Kışla** – otomatik piyade · **Maden** – ek altın · **Talim** – ordu +%15
   - **HÜCUM!** – toplanma alanındaki askerleri saldırıya gönder
-- Düşman kalesi yıkılınca zafer, otağ düşerse yenilgi. Her sefer daha zor.
+- Canavar ini yıkılınca zafer, kale düşerse yenilgi.
+- Müzik: davul, nakkare, zurna ve yaylılarla Hicaz makamında mehter tarzı marş (tamamen kodla üretilir). Müzik ve efekt sesleri ayrı ayrı kapatılabilir.
 
 ## Proje yapısı
 ```
-src/index.html      HTML + arayüz (geliştirme)
-src/game.js         Oyun kodu (Three.js r158)
-vendor/three.min.js Three.js (MIT, bkz. vendor/THREE_LICENSE)
-tools/build_web.py  src → dist/index.html (her şey tek dosyada)
-tools/build_apk.py  dist/index.html → imzalı APK (Android SDK gerektirmez)
-dist/index.html     Derlenmiş oyun
-releases/           APK dosyaları
+src/main.js, src/game.js   Oyun (Three.js r170)
+src/assets.js              Model yükleme / birleştirme
+src/audio.js               Müzik ve ses efektleri (WebAudio)
+src/assets/*.glb           3D modeller (KayKit, CC0 – bkz. src/assets/LICENSE-KayKit.txt)
+tools/build_assets.mjs     KayKit paketlerinden küçültülmüş .glb üretir
+tools/build_web.mjs        Her şeyi tek dist/index.html dosyasına paketler
+tools/build_apk.py         dist/index.html → imzalı APK (Android SDK gerekmez)
 ```
 
 ## Derleme
 ```bash
-python3 tools/build_web.py
+npm install
+npm run build                  # dist/index.html
 python3 tools/build_apk.py dist/index.html tools/ic_launcher.png releases/Akinci-vX.Y.apk
 ```
-`build_apk.py` WebView sarmalayıcıyı (DEX, manifest, kaynaklar) kendisi üretir ve APK Signature Scheme v2 ile imzalar. Gerekenler: Python 3 + `cryptography`.
+Modelleri yeniden üretmek için KayKit depolarını (Adventurers, Skeletons, Medieval Hexagon, Dungeon Remastered) bir klasöre klonlayıp `node tools/build_assets.mjs <klasör>` çalıştır.
 
-**İmza anahtarı** (`tools/release-key.pem`) depoya **eklenmez**. Güncellemelerin eski sürümün üzerine kurulabilmesi için hep aynı anahtar kullanılmalı; anahtarı güvenli bir yerde sakla. Anahtar yoksa betik yenisini üretir, ancak o APK eski sürümün üzerine kurulamaz.
+**İmza anahtarı** (`tools/release-key.pem`) depoya eklenmez; güncellemelerin üzerine kurulabilmesi için hep aynı anahtar kullanılmalı.
 
 ## Sürümler
-- **1.1** – Gerçek 3D grafik (ışık, gölge, yüksek çözünürlük), kısaltılmış harita, saldırgan düşman (dalga hücumları), savunma kulesi.
-- **1.0** – İlk 2D prototip.
+- **1.2** – KayKit 3D modelleri (şövalye, okçu, baltacı, iskelet canavarlar, kale, kule, kışla, maden), atlı okçu Paşa, altın madeni, sürekli saldıran canavar ini, mehter müziği, yeni ses efektleri, daha yakın kamera.
+- **1.1** – İlk 3D sürüm, kısa harita, düşman dalgaları.
+- **1.0** – 2D prototip.
+
+## Lisanslar
+- 3D modeller: Kay Lousberg / KayKit – CC0.
+- Three.js – MIT.

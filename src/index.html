@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Akıncı: Sınır Boyu</title>
 <style>
-html,body{margin:0;height:100%;background:#cfe3ee;overflow:hidden;touch-action:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#bfdcf0;overflow:hidden;touch-action:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
 #top{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px 10px 0;pointer-events:none;z-index:3}
 .badge{background:linear-gradient(180deg,#14a39a,#0a6a65);color:#fff;border-radius:12px;padding:6px 11px;box-shadow:0 3px 0 #064844,0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;line-height:1.05}
@@ -14,12 +14,13 @@ canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
 .right{display:flex;gap:6px;align-items:center}
 .pill{background:rgba(22,28,34,.72);backdrop-filter:blur(4px);color:#fff;font-weight:800;font-size:15px;border-radius:20px;padding:5px 12px 5px 8px;display:flex;align-items:center;gap:6px;min-width:40px;box-shadow:0 4px 10px rgba(0,0,0,.2)}
 .pill i{display:inline-block;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff0a8,#f2b21b 55%,#a86d00);box-shadow:inset 0 0 0 2px #c98d00}
-#mute{pointer-events:auto;border:0;background:rgba(22,28,34,.72);color:#fff;border-radius:50%;width:34px;height:34px;font-size:15px}
+.rb{pointer-events:auto;border:0;background:rgba(22,28,34,.72);color:#fff;border-radius:50%;width:34px;height:34px;font-size:15px}
+.rb.off{opacity:.45;text-decoration:line-through}
 #boss{position:fixed;left:50%;transform:translateX(-50%);top:64px;width:min(62vw,260px);pointer-events:none;z-index:3;text-align:center}
 #boss span{font-size:10px;font-weight:900;color:#fff;letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 #boss div{height:9px;background:rgba(0,0,0,.35);border-radius:6px;overflow:hidden;margin-top:2px;box-shadow:0 0 0 2px rgba(255,255,255,.5)}
-#boss i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff5a5f,#b5232a);transition:width .2s}
-#wave{position:fixed;left:50%;transform:translateX(-50%);top:96px;z-index:3;pointer-events:none;font-weight:900;font-size:13px;color:#fff;background:rgba(150,24,30,.78);padding:4px 12px;border-radius:14px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+#boss i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#c77dff,#6a1fa8);transition:width .2s}
+#wave{position:fixed;left:50%;transform:translateX(-50%);top:96px;z-index:3;pointer-events:none;font-weight:900;font-size:13px;color:#fff;background:rgba(90,24,130,.8);padding:4px 12px;border-radius:14px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.2)}
 #wave.hot{animation:pulse .5s infinite alternate}
 @keyframes pulse{from{transform:translateX(-50%) scale(1)}to{transform:translateX(-50%) scale(1.12)}}
 #hint{position:fixed;left:0;right:0;top:128px;text-align:center;z-index:3;pointer-events:none;font-weight:900;font-size:17px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6),0 0 8px rgba(0,0,0,.5);padding:0 16px}
@@ -38,7 +39,11 @@ canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
 .btn{display:block;width:100%;border:0;border-radius:14px;padding:13px;font-size:18px;font-weight:900;color:#fff;background:linear-gradient(180deg,#19b3aa,#0c8079);box-shadow:0 5px 0 #075550;margin-top:10px;cursor:pointer}
 .btn.alt{background:linear-gradient(180deg,#f0b829,#c98a07);box-shadow:0 5px 0 #8a5e00}
 .btn:active{transform:translateY(3px)}
-#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;color:#0d8a83;font-size:20px;z-index:7;background:#cfe3ee}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:7;background:linear-gradient(180deg,#bfdcf0,#7aa24f);text-align:center;font-weight:900}
+#load b{display:block;font-size:44px;letter-spacing:5px;color:#fff;text-shadow:0 3px 0 #0b6c66}
+#load span{display:block;color:#fff;margin:6px 0 12px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.lb{width:220px;height:10px;border-radius:6px;background:rgba(0,0,0,.25);overflow:hidden;margin:auto}
+.lb i{display:block;height:100%;width:0;background:#ffd75e;transition:width .2s}
 </style>
 </head>
 <body>
@@ -49,17 +54,17 @@ canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
   <div class="right">
     <div class="pill" id="army">⚔ 0</div>
     <div class="pill"><i></i><span id="coins">0</span></div>
-    <button id="mute" aria-label="Ses">🔊</button>
+    <button id="music" class="rb" aria-label="Müzik">🎵</button>
+    <button id="mute" class="rb" aria-label="Ses">🔊</button>
   </div>
 </div>
-<div id="boss"><span>DÜŞMAN KALESİ</span><div><i id="bossfill"></i></div></div>
+<div id="boss"><span>CANAVAR İNİ</span><div><i id="bossfill"></i></div></div>
 <div id="wave">Düşman hücumu: –</div>
 <div id="hint"></div>
-<div id="warn">⚠ DÜŞMAN HÜCUMU!</div>
+<div id="warn">☠ CANAVAR SÜRÜSÜ!</div>
 <div id="joy"><div id="knob"></div></div>
 <div id="ov" class="ov hide"><div class="card" id="card"></div></div>
-<div id="load">Yükleniyor…</div>
-<!--THREE--><script src="../vendor/three.min.js"></script><!--/THREE-->
-<!--GAME--><script src="game.js"></script><!--/GAME-->
+<div id="load"><div><b>AKINCI</b><span>Yükleniyor…</span><div class="lb"><i id="loadbar"></i></div></div></div>
+<!--GAME--><script src="../dist/bundle.js"></script><!--/GAME-->
 </body>
 </html>

@@ -6,7 +6,7 @@ import struct, hashlib, zlib, zipfile, io, os, sys
 PKG = "com.akinci.sinirboyu"
 CLS = "Lcom/akinci/sinirboyu/MainActivity;"
 LABEL = "Akıncı"
-VERSION_CODE, VERSION_NAME = 2, "1.1"
+VERSION_CODE, VERSION_NAME = 3, "1.2"
 MIN_SDK, TARGET_SDK = 24, 34
 HERE = os.path.dirname(os.path.abspath(__file__))
 

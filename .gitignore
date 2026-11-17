@@ -2,3 +2,5 @@ tools/release-key.pem
 tools/release-cert.der
 __pycache__/
 *.pyc
+node_modules/
+dist/bundle.js
