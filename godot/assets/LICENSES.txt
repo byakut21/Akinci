@@ -1,0 +1,6 @@
+Akıncı (Godot) üçüncü taraf varlıkları
+- Quaternius: Ultimate Fantasy RTS, Nature, Ships, Animated Animals (at) — CC0 1.0 (quaternius.com)
+- KayKit (Kay Lousberg): Character Pack Adventures, Dungeon Remastered — CC0 1.0
+- ambientCG: Ground037, Rock023 dokuları — CC0 1.0 (Terrain3D demo kopyası üzerinden)
+- Cinzel, Nunito yazı tipleri — SIL Open Font License 1.1 (fonts/OFL-*.txt)
+- Müzik ve ses efektleri: özgün, prosedürel olarak üretildi (tools/gen_audio.py)
