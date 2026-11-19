@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Akıncı: Beş Krallık</title>
+<title>Akıncı: Krallıklar Çağı</title>
 <style>
 html,body{margin:0;height:100%;background:#1d2a20;overflow:hidden;touch-action:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
@@ -23,7 +23,7 @@ canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
 #status{position:fixed;left:50%;transform:translateX(-50%);top:58px;z-index:3;pointer-events:none;font-weight:900;font-size:12.5px;color:#fff;padding:4px 12px;border-radius:12px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.3)}
 #status.peace{background:rgba(30,110,80,.82)}#status.war{background:rgba(140,24,30,.85)}
 #mini{position:fixed;right:8px;top:92px;width:104px;height:104px;z-index:3;pointer-events:none;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,.4)}
-#feed{position:fixed;left:8px;top:92px;z-index:3;pointer-events:none;font-weight:800;font-size:12.5px;max-width:58vw;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.7);line-height:1.35}
+#feed{position:fixed;left:8px;top:150px;z-index:3;pointer-events:none;font-weight:800;font-size:12.5px;max-width:58vw;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.7);line-height:1.35}
 #hint{position:fixed;left:0;right:0;bottom:22px;text-align:center;z-index:3;pointer-events:none;font-weight:900;font-size:15px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.6),0 0 8px rgba(0,0,0,.5);padding:0 14px}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .ft{position:absolute;left:0;top:0;font-weight:900;white-space:nowrap;text-shadow:0 2px 0 rgba(0,0,0,.65),0 0 6px rgba(0,0,0,.45);will-change:transform,opacity}
@@ -46,6 +46,16 @@ canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
 #load span{display:block;color:#d8ccb0;margin:6px 0 12px}
 .lb{width:220px;height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin:auto}
 .lb i{display:block;height:100%;width:0;background:#ffd75e;transition:width .2s}
+#quest{position:fixed;left:8px;top:90px;z-index:3;pointer-events:none;width:min(56vw,230px);background:rgba(24,18,10,.78);border:1px solid #8a6a2c;border-radius:10px;padding:6px 8px 12px;color:#eadfc6;box-shadow:0 4px 12px rgba(0,0,0,.35);position:fixed;overflow:hidden}
+#quest b{display:block;font-size:12px;color:#ffd75e;font-family:Georgia,serif}
+#quest span{display:block;font-size:11.5px;margin-top:2px}
+#quest i{position:absolute;left:0;bottom:0;height:4px;background:#ffd75e;transition:width .3s}
+#quest em{position:absolute;right:8px;top:6px;font-style:normal;font-size:11px;font-weight:800;color:#fff}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 55%,rgba(10,8,4,.42) 100%)}
+.scard{background:linear-gradient(180deg,#2a2218,#120e09);border:2px solid #a57d32;border-radius:14px;max-width:360px;width:100%;padding:20px 18px 14px;color:#eadfc6;box-shadow:0 20px 60px rgba(0,0,0,.7);text-align:left}
+.stitle{font-family:Georgia,"Times New Roman",serif;font-size:26px;color:#ffd75e;text-align:center;letter-spacing:2px;margin-bottom:10px;text-shadow:0 2px 0 #4a3000}
+.sbody{font-size:14.5px;line-height:1.55;font-family:Georgia,serif}
+.sbody b{color:#ffd75e}
 </style>
 </head>
 <body>
@@ -64,11 +74,14 @@ canvas#c{display:block;width:100vw;height:100vh;position:fixed;inset:0}
 </div>
 <div id="status"></div>
 <canvas id="mini" width="208" height="208"></canvas>
+<div id="quest"></div>
 <div id="feed"></div>
+<div id="vig"></div>
+<div id="story" class="ov hide"></div>
 <div id="hint"></div>
 <div id="joy"><div id="knob"></div></div>
 <div id="ov" class="ov hide"><div class="card" id="card"></div></div>
-<div id="load"><div><b>AKINCI</b><span>Beş Krallık yükleniyor…</span><div class="lb"><i id="loadbar"></i></div></div></div>
+<div id="load"><div><b>AKINCI</b><span>Krallıklar Çağı yükleniyor…</span><div class="lb"><i id="loadbar"></i></div></div></div>
 <!--GAME--><script src="../dist/bundle.js"></script><!--/GAME-->
 </body>
 </html>

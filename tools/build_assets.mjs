@@ -68,7 +68,7 @@ await pack('adv_weapons', [
 // ---- world (medieval hexagon pack)
 const g = (f) => `${MED}/${f}.gltf`;
 const COLORS = ['red', 'yellow', 'blue', 'green'];
-const BLD = ['castle', 'tower_A', 'barracks', 'archeryrange', 'tavern', 'home_A', 'home_B', 'mine', 'blacksmith', 'windmill', 'market'];
+const BLD = ['castle', 'tower_A', 'barracks', 'archeryrange', 'tavern', 'home_A', 'home_B', 'mine', 'windmill', 'market', 'well'];
 const worldItems = [];
 for (const c of COLORS) for (const b of BLD) worldItems.push([`${b}_${c}`, g(`buildings/${c}/building_${b}_${c}`)]);
 for (const c of COLORS) worldItems.push([`flag_${c}`, g(`decoration/props/flag_${c}`)]);
@@ -83,6 +83,9 @@ worldItems.push(
   ['hills_A', g('decoration/nature/hills_A_trees')], ['hills_B', g('decoration/nature/hills_B_trees')], ['hills_C', g('decoration/nature/hills_C_trees')],
   ['mountain_A', g('decoration/nature/mountain_A_grass_trees')], ['mountain_B', g('decoration/nature/mountain_B_grass_trees')], ['mountain_C', g('decoration/nature/mountain_C_grass_trees')],
   ['mountain_A_rock', g('decoration/nature/mountain_A')], ['mountain_B_rock', g('decoration/nature/mountain_B')],
+  ['cloud_big', g('decoration/nature/cloud_big')], ['cloud_small', g('decoration/nature/cloud_small')],
+  ['waterlily_A', g('decoration/nature/waterlily_A')], ['waterlily_B', g('decoration/nature/waterlily_B')], ['waterplant_B', g('decoration/nature/waterplant_B')],
+  ['trees_A_small', g('decoration/nature/trees_A_small')], ['trees_B_small', g('decoration/nature/trees_B_small')],
   ['barrel', g('decoration/props/barrel')], ['crate', g('decoration/props/crate_A_big')], ['weaponrack', g('decoration/props/weaponrack')],
   ['target', g('decoration/props/target')], ['wheelbarrow', g('decoration/props/wheelbarrow')], ['sack', g('decoration/props/sack')],
   ['resource_stone', g('decoration/props/resource_stone')], ['resource_lumber', g('decoration/props/resource_lumber')], ['tent', g('decoration/props/tent')], ['bucket_arrows', g('decoration/props/bucket_arrows')]
