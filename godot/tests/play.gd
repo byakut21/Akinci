@@ -15,10 +15,11 @@ func _init():
 	var secs = float(a[1]); var t0 = Time.get_ticks_msec()
 	var n = int(secs * 10)
 	for i in n:
+		if i % 600 == 0: print("t=", g.G.t, " msgs ", g.G.msgs.map(func(m): return m.text))
 		g.update(0.1)
 		if g.G.paused: 
 			g.G.paused = false; g.hud.overlay.visible = false
-	print(g.prof); print("sim ms ", Time.get_ticks_msec() - t0, " units ", g.G.units.size(), " blds ", g.G.blds.size(), " ages ", g.G.ks.map(func(k): return k.age), " alive ", g.G.ks.map(func(k): return k.alive), " res ", g.G.pk.res)
+	print(g.prof); print("castles ", g.G.ks.map(func(k): return [k.civ.id, k.castle.k.civ.id, k.units.size(), k.blds.size()]), " bands ", g.G.bands.size(), " carts ", g.G.carts.size()); print("sim ms ", Time.get_ticks_msec() - t0, " units ", g.G.units.size(), " blds ", g.G.blds.size(), " ages ", g.G.ks.map(func(k): return k.age), " alive ", g.G.ks.map(func(k): return k.alive), " res ", g.G.pk.res)
 	var shots = a.slice(3)
 	var idx = 0
 	var i = 0

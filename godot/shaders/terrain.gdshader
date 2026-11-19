@@ -15,16 +15,17 @@ uniform float texel = 0.8;          // world units per heightmap texel
 uniform float grass_scale = 0.16;   // repeats per world unit
 uniform float rock_scale = 0.07;
 uniform float cloud_shadow = 0.32;
+uniform float hn = 481.0;
 
 varying vec3 wpos;
 varying vec3 wnrm;
 
-float H(vec2 uv) { return texture(heightmap, uv * (330.0 / 331.0) + 0.5 / 331.0).r; }
+float H(vec2 uv) { return texture(heightmap, uv * ((hn - 1.0) / hn) + 0.5 / hn).r; }
 
 void vertex() {
 	vec2 uv = (VERTEX.xz + world_half) / (2.0 * world_half);
 	VERTEX.y = H(uv);
-	float e = 1.0 / 331.0;
+	float e = 1.0 / hn;
 	float hl = H(uv - vec2(e, 0.0)), hr = H(uv + vec2(e, 0.0));
 	float hd = H(uv - vec2(0.0, e)), hu = H(uv + vec2(0.0, e));
 	NORMAL = normalize(vec3(hl - hr, 2.0 * texel, hd - hu));

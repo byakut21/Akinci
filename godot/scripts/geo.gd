@@ -1,16 +1,18 @@
 class_name Geo
 ## Map geometry shared by logic and rendering.
-## Logic works in "px" (0..2000); 3D: X = (x-MC)*K, Z = (y-MC)*K.
+## Logic works in "px" (0..3000); 3D: X = (x-MC)*K, Z = (y-MC)*K.
 
 const K := 0.1
-const MW := 2000.0
-const MC := 1000.0
-const R_PLAY := 975.0
-const KR := 650.0
-const SEA_R := 300.0
-const G0 := -320.0
-const GSPAN := 2640.0
-const GN := 330
+const MW := 3000.0
+const MC := 1500.0
+const R_PLAY := 1460.0
+const KR := 1000.0
+const SEA_R := 430.0
+const RING := 700.0
+const SC := 1.5
+const G0 := -480.0
+const GSPAN := 3960.0
+const GN := 480
 const GC := GSPAN / GN
 
 static var KPOS: Array = []
@@ -75,7 +77,7 @@ static func steer(x: float, y: float, tx: float, ty: float) -> Vector2:
 	var d := wrapf(at - au, -PI, PI)
 	var s := 1.0 if d >= 0.0 else -1.0
 	var step := s * minf(absf(d), 0.45)
-	var r := maxf(dcu, 440.0)
+	var r := maxf(dcu, SEA_R + 140.0)
 	return Vector2(MC + cos(au + step) * r, MC + sin(au + step) * r)
 
 ## Distances used for scenery placement.
@@ -86,7 +88,7 @@ static func fields(px: float, py: float) -> Vector3:
 	for k in KPOS:
 		near = minf(near, Vector2(px - k.x, py - k.y).length())
 		road = minf(road, seg_dist(px, py, k.x, k.y, MC, MC))
-	road = minf(road, absf(dc - 470.0))
+	road = minf(road, absf(dc - RING))
 	return Vector3(dc, near, road)
 
 static func smooth(a: float, b: float, x: float) -> float:

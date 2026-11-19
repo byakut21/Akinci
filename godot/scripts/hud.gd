@@ -26,6 +26,12 @@ var joy_knob: Control
 var overlay: Control
 var card: PanelContainer
 var story_box: Control
+var army_bar: Control
+var b_target: Button
+var b_attack: Button
+var b_defend: Button
+var b_follow: Button
+var army_lbl: Label
 var btn_music: Button
 var btn_sfx: Button
 var _joy_id := -1
@@ -63,6 +69,7 @@ func _ready() -> void:
 	_build_feed()
 	_build_hint()
 	_build_joystick()
+	_build_army_bar()
 	_build_overlay()
 
 func _font(name: String, w: String) -> FontFile:
@@ -305,6 +312,81 @@ func _build_joystick() -> void:
 	joy_base.add_child(joy_knob)
 	joy_knob.position = Vector2(40, 40)
 
+func _cmd_btn(t: String, col: Color, w := 110) -> Button:
+	var b := Button.new()
+	b.text = t
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(w, 58)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		var sb := _panel(col if st != "pressed" else col.darkened(0.3), 14, Color(1, 0.84, 0.37, 0.8), 2)
+		sb.content_margin_left = 6
+		sb.content_margin_right = 6
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_font_size_override("font_size", 19)
+	b.add_theme_color_override("font_color", Color.WHITE)
+	b.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	b.add_theme_constant_override("outline_size", 5)
+	return b
+
+func _build_army_bar() -> void:
+	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 4)
+	army_lbl = _label("", 18, GOLD)
+	army_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(army_lbl)
+	var h := HBoxContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", 6)
+	b_target = _cmd_btn("HEDEF", Color(0.2, 0.2, 0.24, 0.92), 150)
+	b_attack = _cmd_btn("SALDIR", Color(0.62, 0.1, 0.12, 0.92))
+	b_defend = _cmd_btn("SAVUN", Color(0.15, 0.32, 0.55, 0.92))
+	b_follow = _cmd_btn("TAKİP", Color(0.55, 0.42, 0.1, 0.92))
+	b_target.pressed.connect(func(): game.cmd_cycle_target())
+	b_attack.pressed.connect(func(): game.cmd_attack())
+	b_defend.pressed.connect(func(): game.cmd_defend())
+	b_follow.pressed.connect(func(): game.cmd_follow())
+	for b in [b_target, b_attack, b_defend, b_follow]:
+		h.add_child(b)
+	v.add_child(h)
+	army_bar = v
+	army_bar.visible = false
+	root.add_child(army_bar)
+
+func _update_army_bar() -> void:
+	var G: Dictionary = game.G
+	if G.is_empty() or not game.running or overlay.visible or G.hero_dead > 0.0 or G.pk.age < 1:
+		army_bar.visible = false
+		return
+	army_bar.visible = true
+	var n: int = game.army_of(G.pk).size()
+	var mode: String = G.army_mode
+	var names := { "charge": "SALDIRIDA", "rally": "SAVUNMADA", "follow": "TAKİPTE" }
+	army_lbl.text = "Ordu: %d asker · %s" % [n, names.get(mode, "")]
+	var t = G.target
+	if t == null or not t.alive:
+		b_target.text = "HEDEF SEÇ"
+		b_target.modulate = Color.WHITE
+	else:
+		b_target.text = "HEDEF: " + t.civ.name.to_upper()
+		b_target.modulate = Color.WHITE
+		(b_target.get_theme_stylebox("normal") as StyleBoxFlat).border_color = t.civ.color
+	for pair in [[b_attack, "charge"], [b_defend, "rally"], [b_follow, "follow"]]:
+		var b: Button = pair[0]
+		b.modulate = Color(1, 1, 1, 1) if mode == pair[1] else Color(1, 1, 1, 0.72)
+		b.scale = Vector2.ONE * (1.06 if mode == pair[1] else 1.0)
+	var hero = G.hero
+	var p3 := Geo.p3(hero.x, hero.y, hero.gy + 7.5)
+	if game.cam.is_position_behind(p3):
+		return
+	var sp: Vector2 = game.cam.unproject_position(p3)
+	var vs := root.get_viewport_rect().size
+	var cs := root.get_global_transform_with_canvas().affine_inverse()
+	sp = cs * sp
+	var sz := army_bar.get_combined_minimum_size()
+	army_bar.size = sz
+	army_bar.position = Vector2(clampf(sp.x - sz.x / 2.0, 8.0, root.size.x - sz.x - 8.0), clampf(sp.y - sz.y, 250.0, root.size.y - sz.y - 160.0))
+
 func _unhandled_input(e: InputEvent) -> void:
 	if overlay.visible:
 		return
@@ -376,9 +458,9 @@ func _fmt(n: float) -> String:
 func hint_text() -> String:
 	var G: Dictionary = game.G
 	if G.hero_dead > 0.0:
-		return "Paşa kalede iyileşiyor… %d" % ceil(G.hero_dead)
+		return "%s kalede iyileşiyor… %d" % [G.pk.civ.htitle, ceil(G.hero_dead)]
 	if not G.moved:
-		return "Ekranı sürükle, atlı Paşa'yı yönet"
+		return "Ekranı sürükle, atlı %s yönet" % G.pk.civ.hacc
 	var pk = G.pk
 	if G.t < 50.0 and G.stats.built == 0:
 		return "ÇİFTÇİ, ALTINCI, TAŞÇI alanlarından köylü al; EV ile nüfusu artır"
@@ -386,8 +468,10 @@ func hint_text() -> String:
 		return "Kalenin arkasındaki ÇAĞ ATLA alanı seni Feodal Çağ'a taşır"
 	if pk.age == 1 and not game.has_bld(pk, "barracks"):
 		return "KIŞLA ve KULE kur, sınırlarını koru"
-	if G.t > G.peace and G.army_mode == "rally" and game.army_of(pk).size() >= 8:
-		return "SANCAĞA alanı: ordun seni takip etsin, istilaya çık!"
+	if pk.age == 1 and game.army_of(pk).size() > 0 and G.t < 200.0:
+		return "Ordunu üstündeki düğmelerle yönet: HEDEF seç, SALDIR, SAVUN ya da TAKİP"
+	if G.t > G.peace and G.army_mode == "rally" and game.army_of(pk).size() >= 10:
+		return "HEDEF seç ve SALDIR: ordun saf düzeninde yürür"
 	return ""
 
 func quest_ui(force: bool) -> void:
@@ -409,6 +493,7 @@ func quest_ui(force: bool) -> void:
 	q_bar.value = n
 
 func _process(_dt: float) -> void:
+	_update_army_bar()
 	_mini_t -= 1
 	if minimap_dirty and _mini_t <= 0:
 		_mini_t = 6
@@ -426,14 +511,24 @@ func _draw_mini() -> void:
 	mini.draw_circle(Vector2(S, S) / 2.0, Geo.SEA_R * sc, Color(0.16, 0.43, 0.59, 0.95))
 	for k in G.ks:
 		var c: Color = k.civ.color
-		mini.draw_circle(Vector2(k.x, k.y) * sc, 300.0 * sc, Color(c.r, c.g, c.b, 0.33 if k.alive else 0.1))
-		if k.alive:
+		var own = k
+		if not k.alive and k.castle != null and k.castle.hp > 0.0:
+			own = k.castle.k
+		var oc: Color = own.civ.color
+		mini.draw_circle(Vector2(k.x, k.y) * sc, 300.0 * sc, Color(oc.r, oc.g, oc.b, 0.33))
+		if k.castle != null and k.castle.hp > 0.0:
+			c = k.castle.k.civ.color
 			mini.draw_rect(Rect2(Vector2(k.x, k.y) * sc - Vector2(5, 5), Vector2(10, 10)), c)
 			mini.draw_rect(Rect2(Vector2(k.x, k.y) * sc - Vector2(5, 5), Vector2(10, 10)), Color.WHITE, false, 1.5)
 	for u in G.units:
 		if u.hp <= 0.0 or u.role == "koylu" or u.role == "hero":
 			continue
 		mini.draw_rect(Rect2(Vector2(u.x, u.y) * sc - Vector2(1.5, 1.5), Vector2(3, 3)), u.k.civ.color)
+	var tg = G.get("target")
+	if tg != null and tg.alive:
+		mini.draw_arc(Vector2(tg.x, tg.y) * sc, 16.0, 0, TAU, 24, Color(1, 0.3, 0.2), 2.5)
+	for c in G.carts:
+		mini.draw_rect(Rect2(Vector2(c.x, c.y) * sc - Vector2(1, 1), Vector2(2, 2)), Color("#ffd24a"))
 	if G.hero_dead <= 0.0:
 		mini.draw_circle(Vector2(G.hero.x, G.hero.y) * sc, 5.0, Color.WHITE)
 		mini.draw_arc(Vector2(G.hero.x, G.hero.y) * sc, 5.0, 0, TAU, 16, Color.BLACK, 1.5)

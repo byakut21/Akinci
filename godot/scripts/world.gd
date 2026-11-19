@@ -112,10 +112,11 @@ func _build_terrain() -> void:
 	var half := Geo.GSPAN * Geo.K * 0.5
 	mat.set_shader_parameter("world_half", half)
 	mat.set_shader_parameter("texel", Geo.GC * Geo.K)
+	mat.set_shader_parameter("hn", float(Geo.GN + 1))
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(half * 2.0, half * 2.0)
-	pm.subdivide_width = 299
-	pm.subdivide_depth = 299
+	pm.subdivide_width = 439
+	pm.subdivide_depth = 439
 	var mi := MeshInstance3D.new()
 	mi.mesh = pm
 	mi.material_override = mat
@@ -166,17 +167,17 @@ func _build_scenery() -> void:
 	var rocks := ["Rock_Moss_1", "Rock_Moss_2", "Rock_Moss_3", "Rock_Moss_4", "Rock_Moss_5", "Rock_Moss_6", "Rock_Moss_7"]
 	var bare := ["Rock_1", "Rock_2", "Rock_3", "Rock_4", "Rock_5", "Rock_6", "Rock_7"]
 	var snow := ["PineTree_Snow_1", "PineTree_Snow_2", "PineTree_Snow_3"]
-	for i in 14000:
+	for i in 31000:
 		var px := Geo.G0 + _rng.randf() * Geo.GSPAN
 		var py := Geo.G0 + _rng.randf() * Geo.GSPAN
 		var f := Geo.fields(px, py)
 		var dc := f.x
 		var near := f.y
 		var road := f.z
-		if dc > Geo.MW / 2.0 + 330.0 or dc < Geo.SEA_R + 60.0:
+		if dc > Geo.MW / 2.0 + 480.0 or dc < Geo.SEA_R + 60.0:
 			continue
 		var h := Geo.gy(px, py)
-		var wedge := Geo.smooth(360, 560, near) * Geo.smooth(420, 640, dc)
+		var wedge := Geo.smooth(360, 600, near) * Geo.smooth(420 * Geo.SC, 640 * Geo.SC, dc)
 		var rim := Geo.smooth(Geo.R_PLAY - 90, Geo.R_PLAY + 220, dc)
 		if near < 340.0 or road < 42.0:
 			continue
@@ -202,7 +203,7 @@ func _build_scenery() -> void:
 		elif x < 0.03:
 			_add(_pick(["Bush_1", "Bush_2"]), px, py, 1.2 + _rng.randf() * 0.6)
 	# shoreline reeds / lilies
-	for i in 60:
+	for i in 110:
 		var a := _rng.randf() * TAU
 		var d := Geo.SEA_R - 5.0 + _rng.randf() * 40.0
 		var px := Geo.MC + cos(a) * d
@@ -212,7 +213,7 @@ func _build_scenery() -> void:
 		else:
 			_add(_pick(["Plant_1", "Plant_2", "Plant_3"]), px, py, 1.0 + _rng.randf() * 0.6)
 	# ground cover: grass tufts and flowers across the open plains
-	for i in 16000:
+	for i in 34000:
 		var px := Geo.G0 + _rng.randf() * Geo.GSPAN
 		var py := Geo.G0 + _rng.randf() * Geo.GSPAN
 		var f := Geo.fields(px, py)
@@ -299,16 +300,21 @@ func _override_for(kind: String) -> Material:
 # ------------------------------------------------------------------ ships
 func _build_ships() -> void:
 	var sails := [Color(0.83, 0.22, 0.25), Color(0.6, 0.35, 0.84), Color(0.18, 0.48, 0.88), Color(0.13, 0.66, 0.35), Color(0.88, 0.54, 0.12), Color(0.95, 0.94, 0.9)]
-	var kinds := ["Sail_ship", "Viking_boat", "BoatWSail", "Sail_ship", "Viking_boat", "Boat"]
-	for i in 6:
-		var big := i < 3
-		var s := Assets.model("res://assets/ships/%s.glb" % kinds[i], 7.0 if big else 4.2)
+	var kinds := ["Sail_ship", "Viking_boat", "BoatWSail", "Sail_ship", "Viking_boat", "Boat", "Sail_ship", "BoatWSail", "Boat", "Viking_boat"]
+	for i in kinds.size():
+		var big: bool = kinds[i] == "Sail_ship" or kinds[i] == "Viking_boat"
+		var s := Assets.model("res://assets/ships/%s.glb" % kinds[i], 7.5 if big else 4.2)
 		for mat in Assets.unique_materials(s):
-			if mat is BaseMaterial3D and (mat.resource_name.contains("Fabric") or mat.resource_name.contains("White") or mat.resource_name.contains("Red")):
-				(mat as BaseMaterial3D).albedo_color = sails[i]
+			if mat is BaseMaterial3D:
+				var bm := mat as BaseMaterial3D
+				bm.roughness = 0.8
+				bm.metallic = 0.0
+				if bm.resource_name.contains("Fabric") or bm.resource_name.contains("White") or bm.resource_name.contains("Red"):
+					bm.albedo_color = sails[i % sails.size()]
 		add_child(s)
-		ships.append({ "o": s, "a": i * TAU / 6.0 + _rng.randf(), "rad": (15.0 if big else 22.0) + _rng.randf() * 4.0,
-			"sp": (0.035 if big else 0.05) * (1.0 if _rng.randf() < 0.5 else -1.0), "ph": _rng.randf() * 6.0 })
+		var lane := _rng.randf()
+		ships.append({ "o": s, "a": i * TAU / kinds.size() + _rng.randf(), "rad": lerpf(14.0, 35.0, lane),
+			"sp": lerpf(0.045, 0.02, lane) * (1.0 if i % 2 == 0 else -1.0), "ph": _rng.randf() * 6.0 })
 
 func update(t: float, dt: float) -> void:
 	for s in ships:

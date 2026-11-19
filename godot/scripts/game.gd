@@ -45,6 +45,8 @@ class Unit:
 	var removed := false
 	var last_hit_by: Kingdom = null
 	var id := 0
+	var home: Kingdom = null
+	var band = null
 	var gy := 0.0
 	# render
 	var node: Node3D
@@ -81,6 +83,8 @@ class Bld:
 	var banner: Node3D
 	var scaf: Node3D
 	var age_built := -1
+	var home: Kingdom = null
+	var build_total := 3.0
 
 class Kingdom:
 	var i := 0
@@ -140,6 +144,7 @@ class Pad:
 	var done := false
 	var bld: Bld = null
 	var hold := 0.0
+	var cool := 0.0
 	var key := ""
 	var node: Node3D
 	var mat: ShaderMaterial
@@ -148,6 +153,21 @@ class Pad:
 	var icon_spr: Sprite3D
 	var cost_lbls: Array = []
 	var cost_icons: Array = []
+
+class Band:
+	var k: Kingdom
+	var target: Kingdom
+	var units: Array = []
+	var melee: Array = []
+	var ranged: Array = []
+	var x := 0.0
+	var y := 0.0
+	var dir := Vector2(0, -1)
+	var n0 := 0
+	var engaged := false
+	var eng_t := 0.0
+	var spd := 50.0
+	var r := 0.0
 
 class Pool:
 	var mmi: MultiMeshInstance3D
@@ -567,6 +587,7 @@ func make_unit(k: Kingdom, role: String, x: float, y: float, state: String) -> U
 	u.r = T.r
 	u.state = state
 	u.rot = atan2(k.fx, k.fy)
+	u.home = k
 	u.id = uid
 	uid += 1
 	_build_unit_node(u)
@@ -574,38 +595,70 @@ func make_unit(k: Kingdom, role: String, x: float, y: float, state: String) -> U
 	G.units.append(u)
 	return u
 
+var _char_scale := {}
+func _char(file: String, h: float, body_names: Array) -> Node3D:
+	var inst: Node3D = Assets.scene("res://assets/chars/%s.glb" % file).instantiate()
+	if not _char_scale.has(file):
+		var out := AABB()
+		var first := true
+		for m in inst.find_children("*", "MeshInstance3D", true, false):
+			if not (m.name in body_names) and not body_names.is_empty():
+				continue
+			var aa: AABB = Assets.rel_xform(m, inst) * (m as MeshInstance3D).get_aabb()
+			if first:
+				out = aa
+				first = false
+			else:
+				out = out.merge(aa)
+		_char_scale[file] = out
+	var a: AABB = _char_scale[file]
+	var wrap := Node3D.new()
+	wrap.add_child(inst)
+	var k := h / maxf(a.size.y, 0.001)
+	inst.scale = Vector3.ONE * k
+	inst.position = Vector3(0, -a.position.y * k, 0)
+	return wrap
+
+func look_of(u: Unit) -> Dictionary:
+	if u.role == "koylu":
+		return {}
+	return Data.LOOKS[u.k.civ.id].get(u.role, {})
+
 func _build_unit_node(u: Unit) -> void:
 	var k := u.k
 	var role := u.role
-	var model: String = k.civ.hero if role == "hero" else u.T.model
-	var file := "knight" if model in ["heroT", "heroK", "knight"] else model
+	var lk := look_of(u)
 	var h: float = u.T.h
+	if role == "hero":
+		h = 2.45
 	u.node = Node3D.new()
 	add_child(u.node)
-	var body := Assets.model("res://assets/chars/%s.glb" % file, h, true)
+	var body: Node3D
+	if lk.is_empty():
+		body = Assets.model("res://assets/chars/villager.glb", h, true)
+	else:
+		var body_names: Array = Data.K_BODY[lk.m]
+		body = _char(lk.m, h, body_names)
+		var inst0: Node3D = body.get_child(0)
+		var keep: Array = body_names + lk.get("show", [])
+		for m in inst0.find_children("*", "MeshInstance3D", true, false):
+			if not (m.name in keep):
+				m.queue_free()
 	u.body = body
 	var inst: Node3D = body.get_child(0)
 	for old in inst.find_children("*", "AnimationPlayer", true, false):
 		old.queue_free()
-	var hide := []
-	if model == "heroT":
-		hide = ["1H_Sword", "Round_Shield", "Knight_Helmet"]
-	elif model == "heroK":
-		hide = ["1H_Sword", "Round_Shield"]
-	for n in hide:
-		var f := inst.find_child(n, true, false)
-		if f:
-			f.queue_free()
 	var skel: Skeleton3D = inst.find_children("*", "Skeleton3D", true, false)[0]
-	if model == "villager":
+	if lk.is_empty():
 		_attach(skel, "handslot.r", _weapon("axe_1handed", 0.75))
-	if role == "hero":
-		var bow := _build_bow()
-		_attach(skel, "handslot.l", bow)
-		if model == "heroT":
-			var tb := _build_turban(Color("#2e2e2e") if k.civ.id == "arap" else Color("#b3262e"))
-			_attach(skel, "head", tb, Vector3(0, 0.74, 0))
-	_tinted_mats(inst, "%s|%d" % [file, k.civ_i], k.civ.color, 0.12 if role == "koylu" else 0.22)
+	else:
+		if lk.get("bow", false):
+			var bow := _build_bow(1.35 if lk.get("longbow", false) else 1.0)
+			_attach(skel, "handslot.l", bow)
+		var acc := _acc(lk.get("acc", ""), k.civ.color)
+		if acc:
+			_attach(skel, "head", acc)
+	_tint_unit(u)
 	u.ap = AnimationPlayer.new()
 	inst.add_child(u.ap)
 	u.ap.root_node = NodePath("..")
@@ -617,7 +670,7 @@ func _build_unit_node(u: Unit) -> void:
 		u.ap_low.add_animation_library("", lib_lower)
 		u.ap_low.play("Sit_Chair_Pose")
 		var hs := 1.25 if role == "hero" else 1.05
-		u.horse = _make_horse(k, hs)
+		u.horse = _make_horse(k, hs, lk.get("white", false))
 		u.node.add_child(u.horse)
 		u.horse.add_child(body)
 		body.position = Vector3(0, 2.05, 0.15)
@@ -628,6 +681,125 @@ func _build_unit_node(u: Unit) -> void:
 		u.node.add_child(body)
 	u.node.position = Geo.p3(u.x, u.y, Geo.ground_y(u.x, u.y))
 	play(u, idle_anim(u))
+
+func _tint_unit(u: Unit) -> void:
+	var inst: Node3D = u.body.get_child(0)
+	var lk := look_of(u)
+	var file: String = "villager" if lk.is_empty() else lk.m
+	_tinted_mats(inst, "%s|%d" % [file, u.k.civ_i], u.k.civ.color, 0.12 if u.role == "koylu" else 0.3)
+	if u.horse:
+		for mi in u.horse.get_children():
+			if mi is MeshInstance3D and mi.has_meta("cloth"):
+				(mi as MeshInstance3D).material_override = _cloth_mat(u.k)
+
+## headgear by civilisation, in KayKit head-bone space
+func _mat(c: Color, rough := 0.75, metal := 0.0) -> StandardMaterial3D:
+	var key := "acc|%s|%s|%s" % [c.to_html(), rough, metal]
+	if not _mat_cache.has(key):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = c
+		m.roughness = rough
+		m.metallic = metal
+		_mat_cache[key] = m
+	return _mat_cache[key]
+
+func _mi(mesh: Mesh, mat: Material, pos := Vector3.ZERO, rot := Vector3.ZERO, sc := Vector3.ONE) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	m.mesh = mesh
+	m.material_override = mat
+	m.position = pos
+	m.rotation = rot
+	m.scale = sc
+	return m
+
+func _sphere(r: float) -> SphereMesh:
+	var m := SphereMesh.new()
+	m.radius = r
+	m.height = r * 2.0
+	m.radial_segments = 16
+	m.rings = 8
+	return m
+
+func _cyl(top: float, bottom: float, hh: float, seg := 14) -> CylinderMesh:
+	var m := CylinderMesh.new()
+	m.top_radius = top
+	m.bottom_radius = bottom
+	m.height = hh
+	m.radial_segments = seg
+	return m
+
+func _box(x: float, y: float, z: float) -> BoxMesh:
+	var m := BoxMesh.new()
+	m.size = Vector3(x, y, z)
+	return m
+
+func _torus(r: float, t: float) -> TorusMesh:
+	var m := TorusMesh.new()
+	m.inner_radius = r - t
+	m.outer_radius = r + t
+	m.rings = 18
+	m.ring_segments = 6
+	return m
+
+func _acc(kind: String, civ: Color) -> Node3D:
+	if kind == "":
+		return null
+	var g := Node3D.new()
+	var white := _mat(Color("#f4efe4"))
+	var gold := _mat(Color("#e3a62c"), 0.35, 0.6)
+	var red := _mat(Color("#b3262e"))
+	var iron := _mat(Color("#8c939b"), 0.45, 0.5)
+	match kind:
+		"turban", "turban_plume", "pasha":
+			var big := kind == "pasha"
+			var r := 0.52 if big else 0.46
+			g.add_child(_mi(_sphere(r), white, Vector3(0, 0.74, 0), Vector3.ZERO, Vector3(1, 0.72, 1)))
+			g.add_child(_mi(_torus(r * 0.86, 0.07), gold if big else red, Vector3(0, 0.64, 0)))
+			if kind != "turban":
+				g.add_child(_mi(_cyl(0.0, 0.08, 0.62 if big else 0.45), red if big else _mat(civ), Vector3(0, 1.12, 0.16), Vector3(-0.25, 0, 0)))
+				g.add_child(_mi(_sphere(0.09), _mat(Color("#2fc7bd"), 0.2, 0.3), Vector3(0, 0.86, r * 0.92)))
+		"bork":
+			g.add_child(_mi(_cyl(0.3, 0.42, 0.95), white, Vector3(0, 1.05, -0.12), Vector3(-0.35, 0, 0)))
+			g.add_child(_mi(_torus(0.42, 0.06), gold, Vector3(0, 0.66, 0)))
+			g.add_child(_mi(_box(0.5, 0.75, 0.06), white, Vector3(0, 0.95, -0.52), Vector3(0.5, 0, 0)))
+		"crest", "crest_big":
+			var hgt := 1.32 if kind == "crest" else 1.36
+			g.add_child(_mi(_box(0.12, 0.34 if kind == "crest" else 0.46, 0.95 if kind == "crest" else 1.15), red, Vector3(0, hgt, 0)))
+			if kind == "crest_big":
+				g.add_child(_mi(_torus(0.5, 0.05), gold, Vector3(0, 0.98, 0)))
+		"horns", "horns_big":
+			var s := 1.0 if kind == "horns" else 1.35
+			g.add_child(_mi(_sphere(0.5), iron, Vector3(0, 0.78, 0), Vector3.ZERO, Vector3(1, 0.62, 1)))
+			for sx in [-1.0, 1.0]:
+				g.add_child(_mi(_cyl(0.0, 0.11 * s, 0.6 * s), _mat(Color("#efe6cf")), Vector3(sx * 0.52, 0.98, 0), Vector3(0, 0, -sx * 0.9)))
+		"plume":
+			g.add_child(_mi(_cyl(0.0, 0.09, 0.7), _mat(civ), Vector3(0, 1.35, -0.1), Vector3(-0.4, 0, 0)))
+		"crown":
+			g.add_child(_mi(_cyl(0.4, 0.42, 0.2), gold, Vector3(0, 1.16, 0)))
+			for i in 6:
+				var a := i * TAU / 6.0
+				g.add_child(_mi(_cyl(0.0, 0.07, 0.22), gold, Vector3(cos(a) * 0.38, 1.36, sin(a) * 0.38)))
+			g.add_child(_mi(_cyl(0.0, 0.08, 0.7), _mat(civ), Vector3(0, 1.5, -0.2), Vector3(-0.4, 0, 0)))
+		"keffiyeh", "emir":
+			g.add_child(_mi(_sphere(0.56), white, Vector3(0, 0.74, -0.02), Vector3.ZERO, Vector3(1, 0.78, 1.02)))
+			g.add_child(_mi(_box(0.95, 0.85, 0.08), white, Vector3(0, 0.4, -0.5), Vector3(0.2, 0, 0)))
+			g.add_child(_mi(_torus(0.47, 0.06), gold if kind == "emir" else _mat(Color("#1d1d1f")), Vector3(0, 0.98, 0)))
+			if kind == "emir":
+				g.add_child(_mi(_torus(0.43, 0.05), _mat(Color("#1d1d1f")), Vector3(0, 1.06, 0)))
+		"tiara":
+			g.add_child(_mi(_cyl(0.22, 0.46, 0.5), _mat(civ.darkened(0.3)), Vector3(0, 0.96, -0.1), Vector3(-0.35, 0, 0)))
+			g.add_child(_mi(_torus(0.45, 0.05), gold, Vector3(0, 0.72, 0)))
+		"shah":
+			g.add_child(_mi(_cyl(0.36, 0.44, 0.75), gold, Vector3(0, 1.18, 0)))
+			for i in 8:
+				var a := i * TAU / 8.0
+				g.add_child(_mi(_cyl(0.0, 0.06, 0.25), gold, Vector3(cos(a) * 0.36, 1.66, sin(a) * 0.36)))
+			g.add_child(_mi(_sphere(0.1), _mat(Color("#c81e3a"), 0.2, 0.2), Vector3(0, 1.2, 0.44)))
+		_:
+			return null
+	for m in g.get_children():
+		(m as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return g
 
 func _weapon(name: String, size: float) -> Node3D:
 	var mi := MeshInstance3D.new()
@@ -644,8 +816,9 @@ func _attach(skel: Skeleton3D, bone: String, obj: Node3D, off := Vector3.ZERO) -
 	ba.add_child(obj)
 	obj.position = off
 
-func _build_bow() -> Node3D:
+func _build_bow(sc := 1.0) -> Node3D:
 	var g := Node3D.new()
+	g.scale = Vector3.ONE * sc
 	var wood := StandardMaterial3D.new()
 	wood.albedo_color = Color("#5a3416")
 	var gold := StandardMaterial3D.new()
@@ -664,6 +837,7 @@ func _build_bow() -> Node3D:
 	arc.scale = Vector3(0.6, 1, 1)
 	g.add_child(arc)
 	g.rotation_degrees = Vector3(0, 90, 0)
+	g.scale = Vector3.ONE * sc
 	return g
 
 func _build_turban(plume: Color) -> Node3D:
@@ -705,36 +879,35 @@ func _build_turban(plume: Color) -> Node3D:
 	return g
 
 var _horse_cloth := {}
-func _make_horse(k: Kingdom, hs: float) -> Node3D:
-	var hw := Assets.model("res://assets/animals/Horse.glb", 2.55 * hs, true)
+func _cloth_mat(k: Kingdom) -> StandardMaterial3D:
+	if not _horse_cloth.has(k.civ_i):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = k.civ.color
+		m.roughness = 0.8
+		_horse_cloth[k.civ_i] = m
+	return _horse_cloth[k.civ_i]
+
+func _make_horse(k: Kingdom, hs: float, white := false) -> Node3D:
+	var hw := Assets.model("res://assets/animals/%s.glb" % ("Horse_White" if white else "Horse"), 2.55 * hs, true)
 	var inst: Node3D = hw.get_child(0)
 	var ap: AnimationPlayer = inst.find_children("*", "AnimationPlayer", true, false)[0]
 	for a in ["AnimalArmature|Gallop", "AnimalArmature|Walk", "AnimalArmature|Idle"]:
 		if ap.has_animation(a):
 			ap.get_animation(a).loop_mode = Animation.LOOP_LINEAR
 	ap.play("AnimalArmature|Idle")
-	# saddle cloth in civ colour
-	if not _horse_cloth.has(k.civ_i):
-		var m := StandardMaterial3D.new()
-		m.albedo_color = k.civ.color
-		m.roughness = 0.8
-		_horse_cloth[k.civ_i] = m
 	var cl := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(1.05, 0.06, 1.1)
-	cl.mesh = bm
-	cl.material_override = _horse_cloth[k.civ_i]
+	cl.mesh = _box(1.05, 0.06, 1.1)
+	cl.material_override = _cloth_mat(k)
 	cl.position = Vector3(0, 1.62, 0.1)
+	cl.set_meta("cloth", true)
 	hw.add_child(cl)
 	for sx in [-1.0, 1.0]:
 		var side := MeshInstance3D.new()
-		var sb := BoxMesh.new()
-		sb.size = Vector3(0.05, 0.5, 1.1)
-		side.mesh = sb
-		side.material_override = _horse_cloth[k.civ_i]
+		side.mesh = _box(0.05, 0.5, 1.1)
+		side.material_override = _cloth_mat(k)
 		side.position = Vector3(sx * 0.52, 1.4, 0.1)
+		side.set_meta("cloth", true)
 		hw.add_child(side)
-	hw.scale = Vector3.ONE
 	return hw
 
 func idle_anim(u: Unit) -> String:
@@ -772,7 +945,9 @@ func add_bld(k: Kingdom, type: String, x: float, y: float, instant := true) -> B
 	o.dmg = B.get("dmg", 0.0) * (k.civ.mod.towerDmg if type == "tower" and k.civ.mod.has("towerDmg") else 1.0)
 	o.range = B.get("range", 0.0)
 	o.cd_max = B.get("cd", 1.0)
-	o.build_t = 0.0 if instant else 3.0
+	o.build_total = B.get("bt", 8.0)
+	o.build_t = 0.0 if instant else o.build_total
+	o.home = k
 	o.walk = B.get("walk", false)
 	o.node = Node3D.new()
 	add_child(o.node)
@@ -794,7 +969,7 @@ func finish_bld(o: Bld) -> void:
 	if o.scaf:
 		o.scaf.queue_free()
 		o.scaf = null
-	var age := clampi(k.age, 0, 2)
+	var age := clampi(k.age if o.home == null or o.home == k else o.home.age, 0, 2)
 	if o.age_built == age and o.model != null:
 		return
 	o.age_built = age
@@ -998,9 +1173,6 @@ func pads_for(k: Kingdom) -> Array:
 	add.call({ "id": "u_suvari", "f": q.x, "s": q.y, "unit": "suvari", "icon": "suvari", "needs": "stable" })
 	q = upos.call(S.stable, 1)
 	add.call({ "id": "u_atliokcu", "f": q.x, "s": q.y, "unit": "atliokcu", "icon": "atliokcu", "needs": "stable" })
-	add.call({ "id": "cmd_atk", "f": 300, "s": 0, "label": "HÜCUM!", "icon": "atk", "cmd": "charge", "w": 66, "h": 52 })
-	add.call({ "id": "cmd_follow", "f": 300, "s": -78, "label": "SANCAĞA", "icon": "sancak", "cmd": "follow", "w": 62, "h": 52 })
-	add.call({ "id": "cmd_def", "f": 300, "s": 78, "label": "SAVUN", "icon": "kalkan", "cmd": "rally", "w": 62, "h": 52 })
 	for p in list:
 		if p.unit != "":
 			if p.label == "":
@@ -1113,6 +1285,8 @@ func _draw_pad(p: Pad, k: Kingdom) -> void:
 		if p.job == "food" and job_count(k, "food") >= farm_cap(k):
 			block = "TARLA GEREK"
 	var cmd_n := army_of(k).size() if p.cmd != "" else 0
+	if p.cool > 0.0:
+		block = "%d sn" % ceil(p.cool)
 	var key := "%s|%s|%s|%s|%s|%s|%d|%s|%s|%s|%s|%d" % [rem.f, rem.s, rem.g, act, block, cmd_n, int(p.hold * 20), k.res.f >= rem.f, k.res.s >= rem.s, k.res.g >= rem.g, G.army_mode, k.age]
 	if key == p.key:
 		return
@@ -1188,6 +1362,9 @@ func clear_game() -> void:
 				d.queue_free()
 	for p in G.pads:
 		p.node.queue_free()
+	for c in G.get("carts", []):
+		if is_instance_valid(c.node):
+			c.node.queue_free()
 	floats.clear()
 
 func new_game(level: int, civ_idx: int) -> void:
@@ -1195,7 +1372,7 @@ func new_game(level: int, civ_idx: int) -> void:
 	rng.seed = level * 977 + civ_idx * 31 + 13
 	G = { "q": 0, "paused": false, "level": level, "t": 0.0, "units": [], "blds": [], "proj": [], "coins": [], "parts": [], "fly": [], "ks": [], "pads": [],
 		"msgs": [], "pay_t": 0.0, "hero_dead": 0.0, "shake": 0.0, "over": "", "over_t": 0.0, "moved": false, "army_mode": "rally",
-		"peace": maxf(240.0, 420.0 - 40.0 * (level - 1)), "alarm_t": 0.0, "stats": { "built": 0, "trained": 0 }, "collapse": [], "on_pad": null, "buy_cd": 0.0, "war_started": false }
+		"peace": maxf(240.0, 420.0 - 40.0 * (level - 1)), "alarm_t": 0.0, "stats": { "built": 0, "trained": 0 }, "collapse": [], "bands": [], "target": null, "carts": [], "cart_t": 3.0, "on_pad": null, "buy_cd": 0.0, "war_started": false }
 	var rest := []
 	for i in Data.CIVS.size():
 		if i != civ_idx:
@@ -1212,6 +1389,8 @@ func new_game(level: int, civ_idx: int) -> void:
 	var pk: Kingdom = G.pk
 	G.hero = make_unit(pk, "hero", pk.castle.x + pk.fx * 120.0, pk.castle.y + pk.fy * 120.0, "hero")
 	G.pads = pads_for(pk)
+	for i in 4:
+		spawn_cart(true)
 	cam_target = Geo.p3(G.hero.x, G.hero.y - 50.0, 0.0)
 	msg("Barış dönemi: krallığını büyüt!", Color("#ffe27a"))
 	hud.quest_ui(true)
@@ -1340,7 +1519,20 @@ func drop_coins(x: float, y: float, n: int) -> void:
 
 func shoot(src, tgt, dmg: float, z0: float) -> void:
 	var d := Vector2(tgt.x - src.x, tgt.y - src.y).length()
-	G.proj.append({ "x0": src.x, "y0": src.y, "z0": z0, "tgt": tgt, "tx": tgt.x, "ty": tgt.y, "t": 0.0, "T": maxf(0.2, d / 470.0), "dmg": dmg, "src": src, "h": d * Geo.K * 0.14 })
+	var miss := false
+	if tgt.kind == "u":
+		var chance := 0.12 + d / 1600.0
+		if tgt.moving:
+			chance += 0.18 if tgt.T.get("horse", false) else 0.08
+		if src.kind == "u" and src.role == "hero":
+			chance *= 0.4
+		miss = randf() < chance
+	var pr := { "x0": src.x, "y0": src.y, "z0": z0, "tgt": tgt, "tx": tgt.x, "ty": tgt.y, "t": 0.0, "T": maxf(0.2, d / 470.0), "dmg": dmg * hit_mult(src, tgt), "src": src, "h": d * Geo.K * 0.14, "miss": miss }
+	if miss:
+		var a := randf() * TAU
+		pr.tx += cos(a) * (10.0 + randf() * 14.0)
+		pr.ty += sin(a) * (10.0 + randf() * 14.0)
+	G.proj.append(pr)
 	if near_cam(src.x, src.y):
 		sfx("arrow", 0.5)
 
@@ -1365,7 +1557,7 @@ func kill(t) -> void:
 		if t.role == "hero":
 			t.hp = 0.0
 			G.hero_dead = 5.0
-			float_text(t.x, t.y, 5.0, "Paşa yaralandı!", Color("#ffd75e"), 18.0)
+			float_text(t.x, t.y, 5.0, t.k.civ.htitle + " yaralandı!", Color("#ffd75e"), 18.0)
 			burst("spark", t.x, t.y, 2.0, Color("#ff5050"), 14, 60.0)
 			return
 		t.dying = 2.4
@@ -1381,6 +1573,13 @@ func kill(t) -> void:
 		if near_cam(t.x, t.y):
 			sfx("boom")
 			G.shake = maxf(G.shake, 0.4)
+		if t.type == "castle":
+			var by: Kingdom = t.last_hit_by
+			if by == null or not by.alive or by == t.k:
+				by = pick_target(t.k, false)
+			if by != null:
+				conquer_castle(t, by)
+				return
 		t.node.visible = false
 		if t.k.is_player:
 			for p in G.pads:
@@ -1388,34 +1587,48 @@ func kill(t) -> void:
 					p.done = false
 					p.paid = { "f": 0, "s": 0, "g": 0 }
 					p.bld = null
-		if t.type == "castle":
-			conquer(t.k, t.last_hit_by)
+					p.cool = 90.0
+					msg(Data.BT[t.type].name + " yıkıldı! 90 sn sonra yeniden kurulabilir", Color("#ff9a8a"))
 
-func conquer(k: Kingdom, by: Kingdom) -> void:
-	if not k.alive:
-		return
-	k.alive = false
-	k.fallen_by = by
-	var nm: String = by.civ.name if by else "düşman"
-	msg("🏰 " + k.civ.full + " düştü! (" + nm + ")", by.civ.color if by else Color.WHITE)
+## A castle fell: its realm (home castle) or province (captured castle) passes to the conqueror,
+## together with the remaining army, villagers and buildings.
+func conquer_castle(c: Bld, by: Kingdom) -> void:
+	var old: Kingdom = c.k
+	var realm_falls: bool = c == old.castle
+	c.hp = c.maxhp * 0.4
+	var mu := []
+	var mb := []
+	for u in old.units:
+		if u.role != "hero" and (realm_falls or u.home == c.home) and u.hp > 0.0 and u.dying <= 0.0:
+			mu.append(u)
+	for b in old.blds:
+		if b.hp > 0.0 and (realm_falls or b.home == c.home):
+			mb.append(b)
+	for u in mu:
+		transfer_unit(u, old, by)
+	for b in mb:
+		transfer_bld(b, old, by)
+	for k in G.ks:
+		if k == c.home or (realm_falls and k == old):
+			for d in k.deco:
+				if is_instance_valid(d):
+					_bld_mats(d, by.civ_i)
+	smoke(c.x, c.y, 2.0, 18, 2.6)
 	sfx("conquer")
-	for u in k.units:
-		if alive(u) and u.role != "hero":
-			u.dying = 2.0 + randf()
-			u.hp = 0.0
-	var i := 0
-	for b in k.blds:
-		if b.hp > 0.0:
-			G.collapse.append({ "b": b, "t": 0.3 + i * 0.18 })
-			i += 1
-	if by:
-		by.res.g += 250.0
-		by.res.f += 150.0
-		by.res.s += 150.0
-		if by.is_player:
-			drop_coins(k.x, k.y, 40)
-			msg("Ganimet: +250 altın +150 yiyecek +150 taş", Color("#ffe27a"))
-	if k.is_player and G.over == "":
+	var place: String = c.home.civ.full
+	if realm_falls:
+		old.alive = false
+		old.fallen_by = by
+		msg("🏰 " + old.civ.full + " düştü! " + by.civ.name + " ele geçirdi (%d asker, %d yapı)" % [mu.size(), mb.size()], by.civ.color)
+	else:
+		msg("🏰 " + by.civ.name + ", " + old.civ.name + " elindeki " + place + " topraklarını aldı", by.civ.color)
+	by.res.g += 250.0
+	by.res.f += 150.0
+	by.res.s += 150.0
+	if by.is_player:
+		drop_coins(c.x, c.y, 30)
+		msg("Ganimet: +250 altın +150 yiyecek +150 taş · ordu ve yapılar artık senin", Color("#ffe27a"))
+	if old.is_player and realm_falls and G.over == "":
 		G.over = "lose"
 		G.over_t = 2.5
 		sfx("lose")
@@ -1427,6 +1640,34 @@ func conquer(k: Kingdom, by: Kingdom) -> void:
 		G.over = "win"
 		G.over_t = 3.0
 		sfx("win")
+	if G.target == old and not old.alive:
+		G.target = null
+
+func transfer_unit(u: Unit, old: Kingdom, by: Kingdom) -> void:
+	old.units.erase(u)
+	by.units.append(u)
+	u.k = by
+	u.band = null
+	u.tgt = null
+	u.goal_k = null
+	if u.role != "koylu":
+		u.state = "follow" if by.is_player and G.army_mode == "follow" else "rally"
+	if u.farm != null:
+		u.farm.workers -= 1
+		u.farm = null
+	_tint_unit(u)
+
+func transfer_bld(b: Bld, old: Kingdom, by: Kingdom) -> void:
+	old.blds.erase(b)
+	by.blds.append(b)
+	b.k = by
+	if b.banner:
+		b.banner.queue_free()
+		b.banner = null
+	b.age_built = -1
+	if b.build_t <= 0.0:
+		finish_bld(b)
+	b.hit = 0.3
 
 func attack(u: Unit, t) -> void:
 	u.rot = atan2(t.x - u.x, t.y - u.y)
@@ -1449,7 +1690,14 @@ func resolve_hit(u: Unit, t) -> void:
 		return
 	if t.hp <= 0.0 or (t.kind == "u" and t.dying > 0.0) or dist(u, t) - t.r - u.r > u.range + 10.0:
 		return
-	damage(t, u.dmg, u)
+	damage(t, u.dmg * hit_mult(u, t), u)
+	if t.kind == "u" and t.role != "hero" and t.hp > 0.0:
+		var kx: float = t.x - u.x
+		var ky: float = t.y - u.y
+		var kl := maxf(Vector2(kx, ky).length(), 0.01)
+		var push := 6.0 if u.T.get("horse", false) else 3.0
+		t.x += kx / kl * push
+		t.y += ky / kl * push
 	if near_cam(u.x, u.y):
 		sfx("chop" if u.role == "koylu" else u.T.get("snd", "sword"), 0.55)
 	if u.vis:
@@ -1457,7 +1705,31 @@ func resolve_hit(u: Unit, t) -> void:
 	if u.T.has("cleave"):
 		for o in G.units:
 			if o != t and o.k != u.k and alive(o) and dist(o, t) < u.T.cleave:
-				damage(o, u.dmg * 0.6, u)
+				damage(o, u.dmg * 0.6 * hit_mult(u, o), u)
+
+func unit_class(o, attacking := false) -> String:
+	if o.kind == "b":
+		return "tower" if attacking else "bld"
+	if o.role == "hero":
+		return "hero" if attacking else "cav"
+	if o.role == "koylu":
+		return "vil"
+	if o.T.get("horse", false) and not (attacking and o.T.get("ranged", false)):
+		return "cav"
+	if o.T.get("ranged", false):
+		return "arc"
+	if o.role == "baltaci":
+		return "axe" if attacking else "inf"
+	return "inf"
+
+## rock-paper-scissors bonuses, armour vs arrows, and a little randomness
+func hit_mult(src, t) -> float:
+	var a := unit_class(src, true)
+	var d := unit_class(t)
+	var m: float = Data.COUNTER.get(a, {}).get(d, 1.0)
+	if t.kind == "u" and (t.role == "piyade" or t.role == "suvari") and (a == "arc" or a == "tower" or a == "hero"):
+		m *= 0.8
+	return m * randf_range(0.85, 1.15)
 
 func turn(u: Unit, a: float, dt: float) -> void:
 	var d := wrapf(a - u.rot, -PI, PI)
@@ -1505,10 +1777,11 @@ func villager_ai(u: Unit, dt: float) -> void:
 		else:
 			move_to(u, u.tgt.x, u.tgt.y, dt)
 		return
-	if u.job == "food" and (u.farm == null or u.farm.hp <= 0.0):
+	var hk: Kingdom = u.home if u.home != null and u.home.castle != null and u.home.castle.k == k and u.home.castle.hp > 0.0 else k
+	if u.job == "food" and (u.farm == null or u.farm.hp <= 0.0 or u.farm.k != k):
 		u.farm = null
 		for b in k.blds:
-			if b.type == "farm" and b.hp > 0.0 and b.workers < 3:
+			if b.type == "farm" and b.hp > 0.0 and b.workers < 3 and b.home == hk:
 				u.farm = b
 				break
 		if u.farm:
@@ -1516,7 +1789,7 @@ func villager_ai(u: Unit, dt: float) -> void:
 		else:
 			u.job = "gold"
 			return
-	var node: Bld = k.mine if u.job == "gold" else (k.quarry if u.job == "stone" else u.farm)
+	var node: Bld = hk.mine if u.job == "gold" else (hk.quarry if u.job == "stone" else u.farm)
 	if node == null or node.hp <= 0.0:
 		if u.job != "food":
 			u.job = "food"
@@ -1527,8 +1800,8 @@ func villager_ai(u: Unit, dt: float) -> void:
 			var r := randf() * 22.0
 			u.spot = Vector2(node.x + cos(a) * r, node.y + sin(a) * r)
 		else:
-			var dx := k.castle.x - node.x
-			var dy := k.castle.y - node.y
+			var dx := hk.castle.x - node.x
+			var dy := hk.castle.y - node.y
 			var d := Vector2(dx, dy).length()
 			u.spot = Vector2(node.x + dx / d * (node.r + 12.0) + (randf() - 0.5) * 30.0, node.y + dy / d * (node.r + 12.0) + (randf() - 0.5) * 30.0)
 	if u.vs == "toNode":
@@ -1549,7 +1822,7 @@ func villager_ai(u: Unit, dt: float) -> void:
 			u.carry = u.job
 			u.vs = "toDrop"
 	elif u.vs == "toDrop":
-		var c := k.castle
+		var c: Bld = hk.castle
 		var dx := u.x - c.x
 		var dy := u.y - c.y
 		var d := maxf(Vector2(dx, dy).length(), 1.0)
@@ -1583,28 +1856,44 @@ func soldier_ai(u: Unit, dt: float) -> void:
 			if G.hero_dead <= 0.0:
 				u.tgt = nearest_enemy(u, 150.0, false, h.x, h.y)
 		elif u.state == "charge" or u.state == "raid":
-			if u.goal_k == null or not u.goal_k.alive:
-				u.goal_k = pick_target(k, false)
-			u.tgt = nearest_enemy(u, 190.0)
-			if u.tgt == null and u.goal_k != null:
-				u.tgt = nearest_enemy(u, 1e9, false, u.goal_k.castle.x, u.goal_k.castle.y, u.goal_k)
-			if u.goal_k == null:
+			var bd: Band = u.band
+			if bd == null:
 				u.state = "rally"
+			elif bd.engaged:
+				u.tgt = nearest_enemy(u, 200.0)
+				if u.tgt == null and bd.target != null and bd.target.alive:
+					var near_castle := Vector2(bd.x - bd.target.castle.x, bd.y - bd.target.castle.y).length() < 330.0
+					if near_castle:
+						u.tgt = nearest_enemy(u, 1e9, false, bd.target.castle.x, bd.target.castle.y, bd.target)
+			else:
+				u.tgt = nearest_enemy(u, 70.0, true)
 	var t = u.tgt
 	if t != null and (t.hp <= 0.0 or (t.kind == "u" and t.dying > 0.0) or not t.k.alive):
 		u.tgt = null
 		u.tgt_t = 0.0
 	if u.tgt != null:
-		if in_range(u, u.tgt):
-			turn(u, atan2(u.tgt.x - u.x, u.tgt.y - u.y), dt)
+		var tg = u.tgt
+		# foot archers step back from melee attackers
+		if u.T.get("ranged", false) and not u.T.get("horse", false) and tg.kind == "u" and not tg.T.get("ranged", false) and tg.role != "hero":
+			var dd: float = dist(u, tg) - tg.r - u.r
+			if dd < 26.0:
+				var ax: float = u.x - tg.x
+				var ay: float = u.y - tg.y
+				var al := maxf(Vector2(ax, ay).length(), 0.01)
+				move_to(u, u.x + ax / al * 40.0, u.y + ay / al * 40.0, dt)
+				return
+		if in_range(u, tg):
+			turn(u, atan2(tg.x - u.x, tg.y - u.y), dt)
 			if u.cd <= 0.0:
-				attack(u, u.tgt)
+				attack(u, tg)
 				u.cd = u.cd_max
 		else:
-			move_to(u, u.tgt.x, u.tgt.y, dt)
+			move_to(u, tg.x, tg.y, dt)
 		return
 	var goal := Vector2.INF
-	if u.state == "rally":
+	if (u.state == "raid" or u.state == "charge") and u.band != null:
+		goal = u.slot
+	elif u.state == "rally":
 		goal = u.slot
 	elif u.state == "follow" and G.hero_dead <= 0.0:
 		goal = u.slot
@@ -1613,6 +1902,9 @@ func soldier_ai(u: Unit, dt: float) -> void:
 	if goal != Vector2.INF:
 		if Vector2(goal.x - u.x, goal.y - u.y).length() > 4.0:
 			move_to(u, goal.x, goal.y, dt)
+		elif u.band != null:
+			var bd2: Band = u.band
+			turn(u, atan2(bd2.dir.x, bd2.dir.y), dt)
 		else:
 			turn(u, atan2(k.fx, k.fy), dt)
 
@@ -1769,24 +2061,328 @@ func apply_upgrade(k: Kingdom) -> void:
 			u.maxhp *= 1.12
 			u.dmg *= 1.12
 
+func army_power(list: Array) -> float:
+	var p := 0.0
+	for u in list:
+		p += u.hp * u.dmg / 100.0
+	return p
+
+## how hard a kingdom is to take: home army, towers, castle
+func defense_of(t: Kingdom) -> float:
+	var d := 0.0
+	for u in t.units:
+		if u.role != "koylu" and u.role != "hero" and u.hp > 0.0 and u.dying <= 0.0 and (u.state == "rally" or u.state == "follow"):
+			d += u.hp * u.dmg / 100.0
+	for b in t.blds:
+		if b.hp > 0.0 and b.build_t <= 0.0 and (b.type == "tower" or b.type == "castle"):
+			d += 14.0 if b.type == "tower" else 25.0 * (t.age + 1)
+	if t.is_player and G.hero_dead <= 0.0:
+		d += 30.0
+	return d
+
 func ai_war(k: Kingdom) -> void:
-	if G.t < G.peace or k.is_player or k.age < 2:
+	# cautious AI: waits after peace, needs a big army and clear superiority
+	if k.is_player or k.age < 2 or G.t < G.peace + 45.0 + k.i * 35.0:
 		return
-	var army := army_of(k).filter(func(u): return u.state == "rally")
-	var need := mini(24, 9 + 2 * k.waves)
-	if army.size() >= need:
-		var target := pick_target(k, true)
-		if target == null:
+	for b in G.bands:
+		if b.k == k:
 			return
-		for u in army:
-			u.state = "raid"
-			u.goal_k = target
-		k.waves += 1
-		if target.is_player:
-			msg("⚔ " + k.civ.full + " sana sefer başlattı! (%d asker)" % army.size(), k.civ.color)
-			sfx("alarm")
+	var army := army_of(k).filter(func(u): return u.state == "rally")
+	var need := mini(34, 14 + 3 * k.waves)
+	if army.size() < need:
+		return
+	var target := pick_target(k, true)
+	if target == null:
+		return
+	if target.is_player and G.level == 1 and G.t < G.peace + 200.0:
+		return
+	var mine := army_power(army)
+	var theirs := defense_of(target)
+	if mine < theirs * 1.35:
+		return
+	make_band(k, army, target)
+	k.waves += 1
+	if target.is_player:
+		msg("⚔ " + k.civ.full + " sana sefer başlattı! (%d asker)" % army.size(), k.civ.color)
+		sfx("alarm")
+	else:
+		msg(k.civ.name + " → " + target.civ.name + " üzerine yürüyor (%d asker)" % army.size(), Color("#e6e6e6"))
+
+# ================================================================ ARMIES ON THE MARCH
+func make_band(k: Kingdom, units: Array, target: Kingdom) -> Band:
+	var b := Band.new()
+	b.k = k
+	b.target = target
+	var sx := 0.0
+	var sy := 0.0
+	var spd := 999.0
+	for u in units:
+		sx += u.x
+		sy += u.y
+		spd = minf(spd, u.spd)
+		u.band = b
+		u.state = "charge" if k.is_player else "raid"
+		u.tgt = null
+		u.tgt_t = 0.0
+		if u.T.get("ranged", false):
+			b.ranged.append(u)
 		else:
-			msg(k.civ.name + " → " + target.civ.name + " üzerine yürüyor", Color("#e6e6e6"))
+			b.melee.append(u)
+	b.units = units.duplicate()
+	b.n0 = units.size()
+	b.x = sx / maxf(1.0, units.size())
+	b.y = sy / maxf(1.0, units.size())
+	b.spd = spd * 0.8
+	var d := Vector2(target.castle.x - b.x, target.castle.y - b.y)
+	if d.length() > 1.0:
+		b.dir = d.normalized()
+	G.bands.append(b)
+	return b
+
+func disband(b: Band, state := "rally") -> void:
+	for u in b.units:
+		if u.band == b:
+			u.band = null
+			u.state = state
+			u.tgt = null
+	b.units.clear()
+
+func update_bands(dt: float) -> void:
+	for b: Band in G.bands:
+		b.units = b.units.filter(func(u): return u.band == b and u.hp > 0.0 and u.dying <= 0.0 and u.k == b.k)
+		b.melee = b.melee.filter(func(u): return u.band == b and u.hp > 0.0 and u.dying <= 0.0 and u.k == b.k)
+		b.ranged = b.ranged.filter(func(u): return u.band == b and u.hp > 0.0 and u.dying <= 0.0 and u.k == b.k)
+		if b.units.is_empty() or not b.k.alive:
+			disband(b)
+			continue
+		if b.target == null or not b.target.alive or b.target == b.k:
+			var nt := pick_target(b.k, not b.k.is_player)
+			if nt == null or not b.k.is_player:
+				if b.k.is_player:
+					msg("Hedef kalmadı, ordu geri dönüyor", Color("#ffe27a"))
+				disband(b)
+				continue
+			b.target = nt
+		# morale: a beaten army falls back
+		if b.units.size() < maxi(3, int(b.n0 * 0.35)):
+			if b.k.is_player:
+				msg("Ordun ağır kayıp verdi, geri çekiliyor!", Color("#ff9a8a"))
+			elif b.target.is_player:
+				msg(b.k.civ.name + " ordusu bozguna uğradı, geri çekiliyor!", Color("#ffe27a"))
+			disband(b)
+			continue
+		b.eng_t -= dt
+		if b.eng_t <= 0.0:
+			b.eng_t = 0.3
+			b.engaged = nearest_enemy(b, 230.0) != null
+		var tc: Bld = b.target.castle
+		var to_castle := Vector2(tc.x - b.x, tc.y - b.y)
+		if not b.engaged and to_castle.length() > 150.0:
+			# wait for stragglers so the line stays together
+			var lag := 0.0
+			for u in b.units:
+				if u.slot != Vector2.INF:
+					lag += Vector2(u.slot.x - u.x, u.slot.y - u.y).length()
+			lag /= b.units.size()
+			if lag < 60.0:
+				var tx := tc.x
+				var ty := tc.y
+				var w := Geo.steer(b.x, b.y, tx, ty)
+				if w != Vector2.INF:
+					tx = w.x
+					ty = w.y
+				var d := Vector2(tx - b.x, ty - b.y)
+				var dl := d.length()
+				if dl > 1.0:
+					var nd := d / dl
+					b.dir = b.dir.lerp(nd, minf(1.0, dt * 2.0)).normalized()
+					b.x += nd.x * minf(dl, b.spd * dt)
+					b.y += nd.y * minf(dl, b.spd * dt)
+		# formation: melee ranks in front, archers behind
+		var side := Vector2(-b.dir.y, b.dir.x)
+		var cols := 7
+		var row := 0
+		for grp in [b.melee, b.ranged]:
+			var n: int = grp.size()
+			for i in n:
+				var r := row + i / cols
+				var c := i % cols
+				var in_row := mini(cols, n - (i / cols) * cols)
+				var off := (c - (in_row - 1) / 2.0) * 24.0
+				var u: Unit = grp[i]
+				u.slot = Vector2(b.x - b.dir.x * r * 24.0 + side.x * off, b.y - b.dir.y * r * 24.0 + side.y * off)
+			row += int(ceil(n / float(cols)))
+	G.bands = G.bands.filter(func(b): return not b.units.is_empty())
+
+# ================================================================ TRADE CARAVANS (horse carts on the roads)
+func _cart_path(a: Kingdom, b: Kingdom) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	pts.append(k_local(a, 70, 0))
+	var aa := atan2(a.y - Geo.MC, a.x - Geo.MC)
+	var ab := atan2(b.y - Geo.MC, b.x - Geo.MC)
+	var d := wrapf(ab - aa, -PI, PI)
+	var steps := maxi(2, int(absf(d) / 0.07))
+	for i in steps + 1:
+		var t := aa + d * i / steps
+		pts.append(Vector2(Geo.MC + cos(t) * Geo.RING, Geo.MC + sin(t) * Geo.RING))
+	pts.append(k_local(b, 70, 0))
+	return pts
+
+func _make_cart(k: Kingdom) -> Node3D:
+	var n := Node3D.new()
+	var wood := _mat(Color("#7a5230"))
+	var dark := _mat(Color("#4a3020"))
+	n.add_child(_mi(_box(1.5, 0.55, 2.3), wood, Vector3(0, 1.05, -0.7)))
+	for sx in [-1.0, 1.0]:
+		var wh := _mi(_cyl(0.55, 0.55, 0.14, 14), dark, Vector3(sx * 0.85, 0.55, -0.7), Vector3(0, 0, PI / 2.0))
+		wh.set_meta("wheel", true)
+		n.add_child(wh)
+		n.add_child(_mi(_box(0.08, 0.08, 2.0), dark, Vector3(sx * 0.45, 1.0, 1.3)))
+	var canopy := _mi(_cyl(0.85, 0.85, 2.2, 12), _cloth_mat(k), Vector3(0, 1.35, -0.7), Vector3(PI / 2.0, 0, 0), Vector3(0.95, 1, 0.9))
+	canopy.set_meta("cloth", true)
+	n.add_child(canopy)
+	n.add_child(_mi(_box(0.5, 0.4, 0.5), _mat(Color("#c9a66b")), Vector3(0.35, 1.5, -1.6)))
+	var horse := Assets.model("res://assets/animals/Horse.glb", 2.3, true)
+	horse.position = Vector3(0, 0, 2.6)
+	n.add_child(horse)
+	var ap: AnimationPlayer = horse.find_children("*", "AnimationPlayer", true, false)[0]
+	ap.get_animation("AnimalArmature|Walk").loop_mode = Animation.LOOP_LINEAR
+	ap.play("AnimalArmature|Walk")
+	n.set_meta("ap", ap)
+	add_child(n)
+	return n
+
+func spawn_cart(mid := false) -> void:
+	var alive_ks: Array = G.ks.filter(func(k): return k.alive)
+	if alive_ks.size() < 2:
+		return
+	var a: Kingdom = alive_ks[randi() % alive_ks.size()]
+	var b: Kingdom = a
+	while b == a:
+		b = alive_ks[randi() % alive_ks.size()]
+	var path := _cart_path(a, b)
+	var c := { "k": a, "to": b, "path": path, "i": 0, "f": 0.0, "node": _make_cart(a), "x": path[0].x, "y": path[0].y, "rot": 0.0, "wheel": 0.0 }
+	if mid:
+		c.i = randi() % (path.size() - 2)
+	G.carts.append(c)
+
+func update_carts(dt: float) -> void:
+	G.cart_t -= dt
+	if G.cart_t <= 0.0:
+		G.cart_t = 16.0
+		if G.carts.size() < 7:
+			spawn_cart(G.t < 1.0)
+	for c in G.carts:
+		var path: PackedVector2Array = c.path
+		var move := 34.0 * dt
+		while move > 0.0 and c.i < path.size() - 1:
+			var a: Vector2 = path[c.i]
+			var b: Vector2 = path[c.i + 1]
+			var seg := a.distance_to(b)
+			var left: float = seg * (1.0 - c.f)
+			if move >= left:
+				move -= left
+				c.i += 1
+				c.f = 0.0
+			else:
+				c.f += move / maxf(seg, 0.001)
+				move = 0.0
+		if c.i >= path.size() - 1:
+			c["done"] = true
+			var k: Kingdom = c.k
+			if k.alive:
+				k.res.g += 20.0
+				k.res.f += 15.0
+				if k.is_player:
+					float_text(path[path.size() - 1].x, path[path.size() - 1].y, 4.0, "Kervan: +20 altın +15 yiyecek", Color("#ffd24a"), 15.0)
+					sfx("coin", 0.6)
+			c.node.queue_free()
+			continue
+		var p0: Vector2 = path[c.i]
+		var p1: Vector2 = path[c.i + 1]
+		var pos := p0.lerp(p1, c.f)
+		c.x = pos.x
+		c.y = pos.y
+		c.rot = lerp_angle(c.rot, atan2(p1.x - p0.x, p1.y - p0.y), minf(1.0, dt * 4.0))
+		c.wheel += dt * 3.0
+	G.carts = G.carts.filter(func(c): return not c.has("done"))
+
+func sync_carts() -> void:
+	for c in G.carts:
+		var n: Node3D = c.node
+		var vis: bool = absf(c.x - CAMP.x) < 220.0 and c.y - CAMP.y > -420.0 and c.y - CAMP.y < 260.0
+		n.visible = vis
+		(n.get_meta("ap") as AnimationPlayer).active = vis
+		if not vis:
+			continue
+		n.position = Vector3(Geo.x3(c.x), Geo.ground_y(c.x, c.y), Geo.z3(c.y))
+		n.rotation.y = c.rot
+		for w in n.get_children():
+			if w.has_meta("wheel"):
+				w.rotation = Vector3(c.wheel, 0, PI / 2.0)
+
+# ================================================================ PLAYER ARMY COMMANDS (buttons above the commander)
+func enemy_realms() -> Array:
+	var pk: Kingdom = G.pk
+	var out := []
+	for k in G.ks:
+		if k.alive and k != pk:
+			out.append(k)
+	out.sort_custom(func(a, b): return Vector2(a.x - pk.x, a.y - pk.y).length() < Vector2(b.x - pk.x, b.y - pk.y).length())
+	return out
+
+func cmd_cycle_target() -> void:
+	var list := enemy_realms()
+	if list.is_empty():
+		return
+	var i := list.find(G.target)
+	G.target = list[(i + 1) % list.size()]
+	sfx("pay")
+	msg("Hedef: " + G.target.civ.full, G.target.civ.color)
+
+func cmd_attack() -> void:
+	var pk: Kingdom = G.pk
+	var army := army_of(pk)
+	if army.is_empty():
+		msg("Saldıracak askerin yok!", Color("#ff9a8a"))
+		return
+	if G.target == null or not G.target.alive:
+		var list := enemy_realms()
+		if list.is_empty():
+			return
+		G.target = list[0]
+	for b in G.bands:
+		if b.k == pk:
+			disband(b)
+	G.bands = G.bands.filter(func(b): return not b.units.is_empty())
+	make_band(pk, army, G.target)
+	G.army_mode = "charge"
+	sfx("horn")
+	msg("Ordu " + G.target.civ.full + " üzerine yürüyor! (%d asker)" % army.size(), G.target.civ.color)
+
+func _player_bands_off(state: String) -> void:
+	var pk: Kingdom = G.pk
+	for b in G.bands:
+		if b.k == pk:
+			disband(b, state)
+	G.bands = G.bands.filter(func(b): return not b.units.is_empty())
+	for u in army_of(pk):
+		u.state = state
+		u.band = null
+		u.tgt = null
+		u.tgt_t = 0.0
+
+func cmd_defend() -> void:
+	_player_bands_off("rally")
+	G.army_mode = "rally"
+	sfx("horn")
+	msg("Ordu kaleyi savunuyor", Color("#ffe27a"))
+
+func cmd_follow() -> void:
+	_player_bands_off("follow")
+	G.army_mode = "follow"
+	sfx("horn")
+	msg("Ordu " + G.pk.civ.hgen + " sancağını takip ediyor", Color("#ffe27a"))
 
 # ================================================================ UPDATE
 func _physics_process(dt: float) -> void:
@@ -1929,8 +2525,15 @@ func update(dt: float) -> void:
 			villager_ai(u, dt)
 		else:
 			soldier_ai(u, dt)
+	update_bands(dt)
+	update_carts(dt)
+	for p in G.pads:
+		if p.cool > 0.0:
+			p.cool -= dt
 	_t = _pt("units", _t)
-	separation()
+	G.sep_flip = not G.get("sep_flip", false)
+	if G.sep_flip or dt > 0.03:
+		separation()
 	_t = _pt("sep", _t)
 	for b in G.blds:
 		b.hit = maxf(0.0, b.hit - dt)
@@ -1963,12 +2566,15 @@ func update(dt: float) -> void:
 		p.t += dt
 		var tg = p.tgt
 		var tal: bool = tg.hp > 0.0 and (tg.kind == "b" or tg.dying <= 0.0)
-		if tal:
+		if tal and not p.miss:
 			p.tx = tg.x
 			p.ty = tg.y
 		if p.t >= p.T:
 			p.done = true
-			if tal:
+			if p.miss:
+				if near_cam(p.tx, p.ty):
+					burst("spark", p.tx, p.ty, 0.3, Color("#8a7a5c"), 3, 20.0, 2.0)
+			elif tal:
 				damage(tg, p.dmg, p.src)
 				if near_cam(p.tx, p.ty):
 					burst("spark", p.tx, p.ty, 1.5, Color("#fff0c0"), 3, 30.0)
@@ -2215,6 +2821,8 @@ func update_pads(dt: float) -> void:
 	if G.buy_cd > 0.0:
 		G.buy_cd -= dt
 		return
+	if on.cool > 0.0:
+		return
 	if on.unit != "":
 		if pop_of(k) + int(Data.UT[on.unit].pop) > pop_cap(k):
 			return
@@ -2355,7 +2963,7 @@ func sync(dt: float) -> void:
 		var cc: Color = b.k.civ.color
 		var by: float = b.node.position.y
 		if b.build_t > 0.0:
-			add_bar(b.x, b.y, by + 5.0, 3.0, 1.0 - b.build_t / 3.0, GOLD_C)
+			add_bar(b.x, b.y, by + 5.0, 3.0, 1.0 - b.build_t / b.build_total, GOLD_C)
 		elif b.type == "castle" and b.k.age_t > 0.0:
 			add_bar(b.x, b.y, by + 16.0, 5.0, 1.0 - b.k.age_t / Data.AGES[b.k.age + 1].time, GOLD_C)
 		elif b.hp < b.maxhp:
@@ -2413,8 +3021,38 @@ func sync(dt: float) -> void:
 		cp += Vector3((randf() - 0.5) * G.shake * 2.0, (randf() - 0.5) * G.shake * 2.0, 0)
 	cam.look_at_from_position(cp, cam_target)
 	world.update(Time.get_ticks_msec() / 1000.0, dt)
+	sync_carts()
+	_sync_target_marker()
 	_sync_floats(dt)
 	hud.minimap_dirty = true
+
+var _tmark: Node3D
+func _sync_target_marker() -> void:
+	if _tmark == null:
+		_tmark = Node3D.new()
+		var beam := MeshInstance3D.new()
+		beam.mesh = _cyl(0.5, 0.5, 40.0, 12)
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(1.0, 0.3, 0.2, 0.28)
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		beam.material_override = m
+		beam.position.y = 20.0
+		beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_tmark.add_child(beam)
+		var l := _label3d(3.0, Color("#ffd75e"))
+		l.text = "HEDEF"
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.rotation = Vector3.ZERO
+		l.no_depth_test = true
+		l.position.y = 24.0
+		_tmark.add_child(l)
+		add_child(_tmark)
+	var t = G.get("target")
+	_tmark.visible = t != null and t.alive and running
+	if _tmark.visible:
+		_tmark.position = Geo.p3(t.castle.x, t.castle.y, Geo.ground_y(t.castle.x, t.castle.y))
 
 func _proj_pos(p: Dictionary, k: float) -> Vector3:
 	var x: float = p.x0 + (p.tx - p.x0) * k

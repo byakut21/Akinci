@@ -2,12 +2,12 @@ class_name Data
 ## Static game data: civilisations, units, buildings, ages, story, quests.
 
 const CIVS := [
-	{ "id": "osmanli", "name": "Osmanlı", "full": "Osmanlı Devleti", "color": Color("#d4373f"), "hero": "heroT", "uniq": "atliokcu", "uname": "SİPAHİ", "bonus": "Sipahi: güçlü atlı okçu · Atlı birlikler %20 ucuz", "mod": { "horseCost": 0.8 } },
-	{ "id": "roma", "name": "Roma", "full": "Roma İmparatorluğu", "color": Color("#9b59d6"), "hero": "heroK", "uniq": "piyade", "uname": "LEJYONER", "bonus": "Lejyoner: zırhlı piyade · Binalar %20 daha az taş", "mod": { "bldCost": 0.8 } },
-	{ "id": "germen", "name": "Germen", "full": "Germen Boyları", "color": Color("#7b8494"), "hero": "heroK", "uniq": "baltaci", "uname": "BERSERKER", "bonus": "Berserker: öfkeli baltacı · Piyadeler %20 ucuz", "mod": { "footCost": 0.8 } },
-	{ "id": "ingiliz", "name": "İngiliz", "full": "İngiliz Krallığı", "color": Color("#2f7ae0"), "hero": "heroK", "uniq": "okcu", "uname": "UZUN YAYCI", "bonus": "Uzun yaycı: çok uzak menzil · Kuleler %40 güçlü", "mod": { "towerDmg": 1.4 } },
-	{ "id": "arap", "name": "Arap", "full": "Arap Emirliği", "color": Color("#22a85a"), "hero": "heroT", "uniq": "suvari", "uname": "BEDEVİ", "bonus": "Bedevi: hızlı süvari · Yiyecek toplama %25 hızlı", "mod": { "foodRate": 1.25 } },
-	{ "id": "pers", "name": "Pers", "full": "Pers İmparatorluğu", "color": Color("#e08a1e"), "hero": "heroT", "uniq": "piyade", "uname": "ÖLÜMSÜZ", "bonus": "Ölümsüzler: seçkin muhafız · Altın toplama %25 hızlı", "mod": { "goldRate": 1.25 } },
+	{ "id": "osmanli", "htitle": "Paşa", "hacc": "Paşa\'yı", "hgen": "Paşa\'nın", "name": "Osmanlı", "full": "Osmanlı Devleti", "color": Color("#d4373f"), "hero": "heroT", "uniq": "atliokcu", "uname": "SİPAHİ", "bonus": "Sipahi: güçlü atlı okçu · Atlı birlikler %20 ucuz", "mod": { "horseCost": 0.8 } },
+	{ "id": "roma", "htitle": "Konsül", "hacc": "Konsül\'ü", "hgen": "Konsül\'ün", "name": "Roma", "full": "Roma İmparatorluğu", "color": Color("#9b59d6"), "hero": "heroK", "uniq": "piyade", "uname": "LEJYONER", "bonus": "Lejyoner: zırhlı piyade · Binalar %20 daha az taş", "mod": { "bldCost": 0.8 } },
+	{ "id": "germen", "htitle": "Reis", "hacc": "Reis\'i", "hgen": "Reis\'in", "name": "Germen", "full": "Germen Boyları", "color": Color("#7b8494"), "hero": "heroK", "uniq": "baltaci", "uname": "BERSERKER", "bonus": "Berserker: öfkeli baltacı · Piyadeler %20 ucuz", "mod": { "footCost": 0.8 } },
+	{ "id": "ingiliz", "htitle": "Lord", "hacc": "Lord\'u", "hgen": "Lord\'un", "name": "İngiliz", "full": "İngiliz Krallığı", "color": Color("#2f7ae0"), "hero": "heroK", "uniq": "okcu", "uname": "UZUN YAYCI", "bonus": "Uzun yaycı: çok uzak menzil · Kuleler %40 güçlü", "mod": { "towerDmg": 1.4 } },
+	{ "id": "arap", "htitle": "Emir", "hacc": "Emir\'i", "hgen": "Emir\'in", "name": "Arap", "full": "Arap Emirliği", "color": Color("#22a85a"), "hero": "heroT", "uniq": "suvari", "uname": "BEDEVİ", "bonus": "Bedevi: hızlı süvari · Yiyecek toplama %25 hızlı", "mod": { "foodRate": 1.25 } },
+	{ "id": "pers", "htitle": "Şah", "hacc": "Şah\'ı", "hgen": "Şah\'ın", "name": "Pers", "full": "Pers İmparatorluğu", "color": Color("#e08a1e"), "hero": "heroT", "uniq": "piyade", "uname": "ÖLÜMSÜZ", "bonus": "Ölümsüzler: seçkin muhafız · Altın toplama %25 hızlı", "mod": { "goldRate": 1.25 } },
 ]
 
 const UT := {
@@ -28,14 +28,14 @@ const UNIQ := {
 ## w = footprint width in world units
 const BT := {
 	"castle": { "name": "Kale", "hp": 1400.0, "r": 46.0, "w": 10.0, "range": 185.0, "dmg": 9.0, "cd": 1.2 },
-	"house": { "name": "Ev", "hp": 300.0, "r": 22.0, "w": 4.6, "cost": { "s": 40 } },
-	"farm": { "name": "Tarla", "hp": 250.0, "r": 26.0, "w": 6.6, "walk": true, "cost": { "s": 30 } },
+	"house": { "bt": 10.0, "name": "Ev", "hp": 300.0, "r": 22.0, "w": 4.6, "cost": { "s": 40 } },
+	"farm": { "bt": 8.0, "name": "Tarla", "hp": 250.0, "r": 26.0, "w": 6.6, "walk": true, "cost": { "s": 30 } },
 	"mine": { "name": "Altın Madeni", "hp": 500.0, "r": 28.0, "w": 6.0 },
 	"quarry": { "name": "Taş Ocağı", "hp": 500.0, "r": 28.0, "w": 6.0 },
-	"barracks": { "name": "Kışla", "hp": 600.0, "r": 30.0, "w": 6.6, "cost": { "s": 100 } },
-	"archery": { "name": "Okçu Meydanı", "hp": 550.0, "r": 30.0, "w": 6.6, "cost": { "s": 100, "g": 20 } },
-	"stable": { "name": "Ahır", "hp": 650.0, "r": 32.0, "w": 7.0, "cost": { "s": 120, "g": 40 } },
-	"tower": { "name": "Kule", "hp": 600.0, "r": 20.0, "w": 3.6, "range": 195.0, "dmg": 10.0, "cd": 0.9, "cost": { "s": 80, "g": 20 } },
+	"barracks": { "bt": 20.0, "name": "Kışla", "hp": 600.0, "r": 30.0, "w": 6.6, "cost": { "s": 100 } },
+	"archery": { "bt": 20.0, "name": "Okçu Meydanı", "hp": 550.0, "r": 30.0, "w": 6.6, "cost": { "s": 100, "g": 20 } },
+	"stable": { "bt": 24.0, "name": "Ahır", "hp": 650.0, "r": 32.0, "w": 7.0, "cost": { "s": 120, "g": 40 } },
+	"tower": { "bt": 25.0, "name": "Kule", "hp": 600.0, "r": 20.0, "w": 3.6, "range": 195.0, "dmg": 10.0, "cd": 0.9, "cost": { "s": 80, "g": 20 } },
 }
 
 ## Quaternius RTS models per building and age (0 Köy, 1 Feodal, 2 Kale)
@@ -49,6 +49,76 @@ const BMODEL := {
 	"stable": ["Storage_SecondAge_Level2", "Storage_SecondAge_Level2", "Storage_SecondAge_Level3"],
 	"tower": ["WatchTower_FirstAge_Level3", "WatchTower_FirstAge_Level3", "WatchTower_SecondAge_Level1"],
 	"mine": ["Mine", "Mine", "Mine"],
+}
+
+## Per-civilisation look of each role: model, visible props, headgear, bow, horse coat.
+const K_BODY := {
+	"kk_knight": ["Knight_ArmLeft", "Knight_ArmRight", "Knight_Body", "Knight_Head", "Knight_LegLeft", "Knight_LegRight"],
+	"kk_barbarian": ["Barbarian_ArmLeft", "Barbarian_ArmRight", "Barbarian_Body", "Barbarian_Head", "Barbarian_LegLeft", "Barbarian_LegRight"],
+	"kk_rogue": ["Rogue_ArmLeft", "Rogue_ArmRight", "Rogue_Body", "Rogue_Head", "Rogue_LegLeft", "Rogue_LegRight"],
+	"kk_rogue_hooded": ["Rogue_ArmLeft", "Rogue_ArmRight", "Rogue_Body", "Rogue_Head_Hooded", "Rogue_LegLeft", "Rogue_LegRight"],
+	"kk_mage": ["Mage_ArmLeft", "Mage_ArmRight", "Mage_Body", "Mage_Head", "Mage_LegLeft", "Mage_LegRight"],
+}
+const LOOKS := {
+	"osmanli": {
+		"piyade": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword", "Rectangle_Shield"], "acc": "bork" },
+		"baltaci": { "m": "kk_barbarian", "show": ["Barbarian_Cape", "2H_Axe"], "acc": "turban" },
+		"okcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "turban", "bow": true },
+		"suvari": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword", "Round_Shield"], "acc": "turban_plume" },
+		"atliokcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "turban_plume", "bow": true },
+		"hero": { "m": "kk_knight", "show": ["Knight_Cape"], "acc": "pasha", "bow": true, "white": true },
+	},
+	"roma": {
+		"piyade": { "m": "kk_knight", "show": ["Knight_Helmet", "Knight_Cape", "1H_Sword", "Rectangle_Shield"], "acc": "crest" },
+		"baltaci": { "m": "kk_barbarian", "show": ["Barbarian_Cape", "2H_Axe", "Barbarian_Hat"], "acc": "" },
+		"okcu": { "m": "kk_rogue_hooded", "show": ["Rogue_Cape"], "acc": "", "bow": true },
+		"suvari": { "m": "kk_knight", "show": ["Knight_Helmet", "Knight_Cape", "1H_Sword", "Round_Shield"], "acc": "crest" },
+		"atliokcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "", "bow": true },
+		"hero": { "m": "kk_knight", "show": ["Knight_Helmet", "Knight_Cape", "1H_Sword"], "acc": "crest_big", "bow": false, "white": true },
+	},
+	"germen": {
+		"piyade": { "m": "kk_barbarian", "show": ["Barbarian_Cape", "1H_Axe", "Barbarian_Round_Shield"], "acc": "horns" },
+		"baltaci": { "m": "kk_barbarian", "show": ["2H_Axe"], "acc": "" },
+		"okcu": { "m": "kk_rogue_hooded", "show": ["Rogue_Cape"], "acc": "", "bow": true },
+		"suvari": { "m": "kk_barbarian", "show": ["Barbarian_Cape", "1H_Axe", "Barbarian_Round_Shield"], "acc": "horns" },
+		"atliokcu": { "m": "kk_rogue_hooded", "show": ["Rogue_Cape"], "acc": "", "bow": true },
+		"hero": { "m": "kk_barbarian", "show": ["Barbarian_Cape", "2H_Axe"], "acc": "horns_big", "bow": false },
+	},
+	"ingiliz": {
+		"piyade": { "m": "kk_knight", "show": ["Knight_Helmet", "Knight_Cape", "1H_Sword", "Badge_Shield"], "acc": "" },
+		"baltaci": { "m": "kk_barbarian", "show": ["2H_Axe", "Barbarian_Hat"], "acc": "" },
+		"okcu": { "m": "kk_rogue_hooded", "show": ["Rogue_Cape"], "acc": "", "bow": true, "longbow": true },
+		"suvari": { "m": "kk_knight", "show": ["Knight_Helmet", "Knight_Cape", "1H_Sword", "Spike_Shield"], "acc": "plume" },
+		"atliokcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "", "bow": true },
+		"hero": { "m": "kk_knight", "show": ["Knight_Helmet", "Knight_Cape", "2H_Sword"], "acc": "crown", "bow": false, "white": true },
+	},
+	"arap": {
+		"piyade": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword", "Round_Shield"], "acc": "keffiyeh" },
+		"baltaci": { "m": "kk_barbarian", "show": ["2H_Axe"], "acc": "keffiyeh" },
+		"okcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "keffiyeh", "bow": true },
+		"suvari": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword"], "acc": "keffiyeh", "white": true },
+		"atliokcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "keffiyeh", "bow": true, "white": true },
+		"hero": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword"], "acc": "emir", "bow": true, "white": true },
+	},
+	"pers": {
+		"piyade": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword", "Rectangle_Shield"], "acc": "tiara" },
+		"baltaci": { "m": "kk_barbarian", "show": ["2H_Axe"], "acc": "tiara" },
+		"okcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "tiara", "bow": true },
+		"suvari": { "m": "kk_knight", "show": ["Knight_Cape", "1H_Sword", "Round_Shield"], "acc": "tiara" },
+		"atliokcu": { "m": "kk_rogue", "show": ["Rogue_Cape"], "acc": "tiara", "bow": true },
+		"hero": { "m": "kk_mage", "show": ["Mage_Cape"], "acc": "shah", "bow": true, "white": true },
+	},
+}
+
+## damage multipliers: attacker class -> defender class
+const COUNTER := {
+	"inf": { "cav": 1.45, "bld": 1.0 },
+	"axe": { "cav": 1.2, "bld": 2.2, "inf": 1.15 },
+	"arc": { "inf": 1.25, "cav": 0.75, "bld": 0.35, "vil": 1.2 },
+	"cav": { "arc": 1.7, "vil": 1.6, "bld": 0.6, "inf": 1.0 },
+	"hero": { "bld": 0.5 },
+	"vil": { "bld": 0.4 },
+	"tower": {},
 }
 
 const AGES := [

@@ -1,11 +1,11 @@
-# Akıncı: Krallıklar Çağı (v4.0 · Godot)
+# Akıncı: Krallıklar Çağı (v4.1 · Godot)
 
 Ortaçağda geçen, mobil dikey ekran 3D strateji oyunu. Altı medeniyetten birini seç; küçük bir köyle başla, köylülerinle tarla, taş ve altın ocaklarını işlet, **Köy → Feodal → Kale Çağı** boyunca gelişerek kışla, okçu meydanı, ahır ve kuleler aç. 7 dakikalık barış döneminden sonra krallıklar birbirini istila eder. Hikâye ve 10 görevlik sefer seni adım adım yönlendirir.
 
 Harita: ortada gemilerin dolaştığı bir iç deniz, krallıklar arasında tepeler ve ormanlar, çevrede karlı dağlar, ovalar ve yollar.
 
 ## İndir
-- **Android APK:** [`releases/Akinci-v4.0.apk`](releases/Akinci-v4.0.apk) (Godot 4.5, Android 7.0+ / 64-bit; eski sürümlerin üzerine kurulur)
+- **Android APK:** [`releases/Akinci-v4.1.apk`](releases/Akinci-v4.1.apk) (Godot 4.5, Android 7.0+ / 64-bit; eski sürümlerin üzerine kurulur)
 - Önceki web (Three.js) sürümü: `src/` + `dist/index.html`, APK `releases/Akinci-v3.0.apk`
 - Önceki "canavar ini" sürümü: `yedek-v1.2` dalı ve `releases/Akinci-v1.2.apk`
 
@@ -35,6 +35,14 @@ Harita: ortada gemilerin dolaştığı bir iç deniz, krallıklar arasında tepe
   - **SANCAĞA** – ordu Paşa'yı takip eder (istila için) · **HÜCUM!** – en yakın krallığa saldırı · **SAVUN** – kaleye dön
 - Kalesi yıkılan krallık düşer, fetheden ganimet alır. Kalen düşerse kaybedersin.
 - Müzik: özgün, karanlık ortaçağ epiği (çello ostinatosu, savaş davulları, boru, koro) – kodla üretilir; savaşta davullar yoğunlaşır.
+
+## v4.1
+- Harita 1,5 kat büyük (3000 px); yollarda atlı ticaret kervanları, iç denizde 10 gemi
+- Fetih: kalesi düşen krallığın kalan ordusu, köylüleri ve yapıları fatihe geçer
+- Her medeniyetin kendine özgü askerleri ve komutanı: Paşa, Konsül, Reis, Lord, Emir, Şah
+- Saf düzeninde yürüyen ordular, birim üstünlükleri (süvari > okçu > piyade > süvari), ok iskalama, moral/geri çekilme
+- Düşman ancak açık üstünlükle saldırır; yıkılan bina 90 sn sonra yeniden kurulabilir, inşa süreleri uzun
+- Ordu komutları komutanın üstünde: HEDEF, SALDIR, SAVUN, TAKİP
 
 ## v4.0: Godot motoru
 Oyun Godot 4.5 (Mobile renderer) ile yeniden yazıldı: `godot/` klasörü.
