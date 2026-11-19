@@ -1,12 +1,12 @@
-# Akıncı: Krallıklar Çağı
+# Akıncı: Krallıklar Çağı (v4.0 · Godot)
 
 Ortaçağda geçen, mobil dikey ekran 3D strateji oyunu. Altı medeniyetten birini seç; küçük bir köyle başla, köylülerinle tarla, taş ve altın ocaklarını işlet, **Köy → Feodal → Kale Çağı** boyunca gelişerek kışla, okçu meydanı, ahır ve kuleler aç. 7 dakikalık barış döneminden sonra krallıklar birbirini istila eder. Hikâye ve 10 görevlik sefer seni adım adım yönlendirir.
 
 Harita: ortada gemilerin dolaştığı bir iç deniz, krallıklar arasında tepeler ve ormanlar, çevrede karlı dağlar, ovalar ve yollar.
 
 ## İndir
-- **Android APK:** [`releases/Akinci-v3.0.apk`](releases/Akinci-v3.0.apk) (Android 7.0+; eski sürümlerin üzerine kurulur)
-- Tarayıcıda: `dist/index.html`
+- **Android APK:** [`releases/Akinci-v4.0.apk`](releases/Akinci-v4.0.apk) (Godot 4.5, Android 7.0+ / 64-bit; eski sürümlerin üzerine kurulur)
+- Önceki web (Three.js) sürümü: `src/` + `dist/index.html`, APK `releases/Akinci-v3.0.apk`
 - Önceki "canavar ini" sürümü: `yedek-v1.2` dalı ve `releases/Akinci-v1.2.apk`
 
 ## Medeniyetler
@@ -36,8 +36,26 @@ Harita: ortada gemilerin dolaştığı bir iç deniz, krallıklar arasında tepe
 - Kalesi yıkılan krallık düşer, fetheden ganimet alır. Kalen düşerse kaybedersin.
 - Müzik: özgün, karanlık ortaçağ epiği (çello ostinatosu, savaş davulları, boru, koro) – kodla üretilir; savaşta davullar yoğunlaşır.
 
+## v4.0: Godot motoru
+Oyun Godot 4.5 (Mobile renderer) ile yeniden yazıldı: `godot/` klasörü.
+- Dokulu arazi (AmbientCG çimen/kaya, CC0), triplanar kayalık dağlar, karlı zirveler, bulut gölgeleri
+- Derinliğe göre renk alan, kıyıda köpüren iç deniz; gezen gemiler
+- Quaternius RTS binaları (CC0): her çağda kale, ev, kışla, okçu meydanı değişir; çarşı ve tapınak eklenir
+- Rüzgârda sallanan çimenler, ağaçlar, ACES ton eşleme, parlama, sis, vinyet
+- Quaternius animasyonlu at, KayKit karakterler, özgün müzik (savaşta katman geçişi)
+
+### Godot sürümünü derleme
+```
+node tools/gen_terrain.mjs godot/data      # yükseklik + doku haritası
+python3 tools/gen_icons.py                 # alan ikonları
+python3 tools/gen_audio.py                 # müzik ve efektler (ogg)
+godot --headless --path godot --export-release Android ../releases/Akinci-unsigned.apk
+python3 tools/sign_apk.py releases/Akinci-unsigned.apk releases/Akinci-v4.0.apk   # tools/release-key.pem gerekir
+```
+
 ## Proje yapısı
 ```
+godot/scripts/*.gd         Godot sürümü (game, world, hud, data, audio, geo)
 src/main.js, src/game.js   Oyun: 5 krallık, çağlar, hikâye/görevler, yapay zekâ (Three.js r170)
 src/world.js               Arazi (dağ, ova, iç deniz), su, gemiler, bulut gölgeleri
 src/assets.js              Model yükleme / birleştirme
